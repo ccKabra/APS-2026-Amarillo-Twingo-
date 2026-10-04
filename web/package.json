@@ -1,0 +1,21 @@
+{
+  "name": "plataforma-fia-web",
+  "version": "1.0.0",
+  "description": "Interfaz web de la Plataforma Integral FIA - Sprint 1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "react-router-dom": "^7.18.4"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^6.1.1",
+    "vite": "^8.3.2"
+  }
+}
