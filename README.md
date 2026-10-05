@@ -131,11 +131,3 @@ implementacion/
   y que el firewall de Windows permita a Node.js recibir conexiones en redes privadas.
 - **La web muestra una página vieja**: volver a correr `npm run demo` (compila la web de nuevo).
 
-## Uso de Inteligencia Artificial
-
-Prompts usados:
-
-- "Generá el código necesario para el Sprint 1 definido por la Comisión Verde Césped (US9, US8 y US2), con sus tareas y criterios
-  de aceptación, para mostrarlo en la demo" (se pasaron el enunciado y el documento del Sprint 0 de Verde Césped).
-
-LLM usado: Claude.
