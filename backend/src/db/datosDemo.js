@@ -165,6 +165,146 @@ const ESCUDERIAS = [
   },
 ];
 
+const EVENTOS = [
+  ['F1', 'Gran Premio de Singapur', 'CARRERA', 'Circuito Marina Bay', 'Singapur', '2026-10-11', '20:00', true],
+  ['F1', 'Gran Premio de Estados Unidos', 'CARRERA', 'Circuito de las Américas', 'Estados Unidos', '2026-10-25', '15:00', true],
+  ['F1', 'Gran Premio de México', 'CARRERA', 'Autódromo Hermanos Rodríguez', 'México', '2026-11-01', '14:00', true],
+  ['F1', 'Clasificación del Gran Premio de São Paulo', 'CLASIFICACION', 'Autódromo de Interlagos', 'Brasil', '2026-11-07', '15:00', true],
+  ['F1', 'Gran Premio de São Paulo', 'CARRERA', 'Autódromo de Interlagos', 'Brasil', '2026-11-08', '14:00', true],
+  ['F1', 'Gran Premio de Las Vegas', 'CARRERA', 'Circuito callejero de Las Vegas', 'Estados Unidos', '2026-11-21', '22:00', true],
+  ['F1', 'Gran Premio de Abu Dabi', 'CARRERA', 'Circuito Yas Marina', 'Emiratos Árabes Unidos', '2026-12-06', '13:00', false],
+  ['F1', 'Prueba de neumáticos de postemporada', 'PRUEBA', 'Circuito Yas Marina', 'Emiratos Árabes Unidos', '2026-12-09', null, false],
+  ['F1', 'Gran Premio de Argentina', 'CARRERA', 'Autódromo Oscar y Juan Gálvez', 'Argentina', '2027-03-21', null, false],
+  ['F2', 'Ronda de Losail', 'CARRERA', 'Circuito Internacional de Losail', 'Catar', '2026-11-29', '16:00', true],
+  ['F2', 'Ronda de Yas Marina', 'CARRERA', 'Circuito Yas Marina', 'Emiratos Árabes Unidos', '2026-12-05', null, false],
+  ['F3', 'Ronda de Termas de Río Hondo', 'CARRERA', 'Autódromo Termas de Río Hondo', 'Argentina', '2026-11-15', '11:00', true],
+  ['F3', 'Ronda de El Pinar', 'CARRERA', 'Autódromo Víctor Borrat Fabini', 'Uruguay', '2026-12-13', null, false],
+  ['F1A', 'Ronda de Las Vegas', 'CARRERA', 'Circuito callejero de Las Vegas', 'Estados Unidos', '2026-11-20', '18:00', false],
+];
+
+const SANCIONES = [
+  {
+    escuderia: 'Andes Racing Team|F1',
+    piloto: 'F1#31',
+    tipo: 'VELOCIDAD_EN_BOXES',
+    fecha: '2026-09-13',
+    penalizacion: 'Multa de 5.000 €',
+    descripcion: 'Superó el límite de 80 km/h en la calle de boxes durante la segunda práctica libre (registro: 86,4 km/h).',
+    estado: 'FIRMADA',
+  },
+  {
+    escuderia: 'Atlántico Grand Prix|F1',
+    piloto: 'F1#7',
+    tipo: 'COLISION',
+    fecha: '2026-09-20',
+    penalizacion: 'Penalización de 5 segundos',
+    descripcion: 'Provocó un contacto con el auto N° 12 en la curva 1 de la vuelta de apertura.',
+    estado: 'PUBLICADA',
+  },
+  {
+    escuderia: 'Pampa Motorsport|F2',
+    piloto: null,
+    tipo: 'NEUMATICOS',
+    fecha: '2026-09-26',
+    penalizacion: 'Multa de 10.000 €',
+    descripcion: 'La escudería utilizó en la práctica libre un juego de neumáticos que no le había sido asignado.',
+    estado: 'PUBLICADA',
+  },
+  {
+    escuderia: 'Aurora Racing|F1A',
+    piloto: 'F1A#8',
+    tipo: 'LIMITES_DE_PISTA',
+    fecha: '2026-09-27',
+    penalizacion: 'Advertencia',
+    descripcion: 'Excedió los límites de pista en la curva 4 en tres oportunidades durante la carrera.',
+    estado: 'BORRADOR',
+  },
+];
+
+const INSPECCIONES = [
+  ['F1#12', '2026-09-12', 'PESO', 'APROBADO', null],
+  [
+    'F1#31',
+    '2026-09-12',
+    'DIMENSIONES',
+    'OBSERVADO',
+    'Alerón trasero en el límite de la tolerancia; se pide un nuevo control en la próxima fecha.',
+  ],
+  ['F1#7', '2026-09-19', 'PRE_CARRERA', 'APROBADO', null],
+  ['F1#23', '2026-09-19', 'COMBUSTIBLE', 'APROBADO', null],
+  ['F2#3', '2026-09-26', 'POST_CARRERA', 'RECHAZADO', 'Peso 3 kg por debajo del mínimo reglamentario después de la clasificación.'],
+  ['F3#12', '2026-09-26', 'SEGURIDAD', 'APROBADO', null],
+  ['F1A#5', '2026-09-26', 'UNIDAD_DE_POTENCIA', 'APROBADO', null],
+];
+
+function cargarCalendario(db, adminId, marca) {
+  const insertar = db.prepare(`
+    INSERT INTO eventos_calendario (categoria_id, nombre, tipo, circuito, pais, fecha, hora, estado, creado_en, creado_por,
+                                    actualizado_en, oficializado_en, oficializado_por)
+    VALUES ((SELECT id FROM categorias WHERE codigo = ?), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+  for (const [categoria, nombre, tipo, circuito, pais, fecha, hora, oficial] of EVENTOS) {
+    insertar.run(
+      categoria,
+      nombre,
+      tipo,
+      circuito,
+      pais,
+      fecha,
+      hora,
+      oficial ? 'OFICIAL' : 'ESPECULATIVA',
+      marca,
+      adminId,
+      marca,
+      oficial ? marca : null,
+      oficial ? adminId : null,
+    );
+  }
+}
+
+function cargarSanciones(db, adminId, marca, escuderias, pilotos, cuentas) {
+  const insertar = db.prepare(`
+    INSERT INTO sanciones (escuderia_id, piloto_id, categoria_id, tipo_infraccion_id, fecha_infraccion, penalizacion, descripcion,
+                           estado, creada_en, creada_por, actualizada_en, publicada_en, publicada_por)
+    VALUES (?, ?, (SELECT categoria_id FROM escuderias WHERE id = ?), (SELECT id FROM tipos_infraccion WHERE codigo = ?),
+            ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+  const notificar = db.prepare(
+    'INSERT INTO notificaciones_sancion (sancion_id, escuderia_id, notificada_en, firmada_en, firmada_por) VALUES (?, ?, ?, ?, ?)',
+  );
+  for (const s of SANCIONES) {
+    const escuderiaId = escuderias.get(s.escuderia);
+    const publicada = s.estado !== 'BORRADOR';
+    const id = insertar.run(
+      escuderiaId,
+      s.piloto ? pilotos.get(s.piloto) : null,
+      escuderiaId,
+      s.tipo,
+      s.fecha,
+      s.penalizacion,
+      s.descripcion,
+      publicada ? 'PUBLICADA' : 'BORRADOR',
+      marca,
+      adminId,
+      marca,
+      publicada ? marca : null,
+      publicada ? adminId : null,
+    ).lastInsertRowid;
+    if (publicada) {
+      const firmada = s.estado === 'FIRMADA';
+      notificar.run(id, escuderiaId, marca, firmada ? marca : null, firmada ? cuentas.get(s.escuderia) : null);
+    }
+  }
+}
+
+function cargarInspecciones(db, adminId, marca, pilotos) {
+  const insertar = db.prepare(`
+    INSERT INTO inspecciones (escuderia_id, piloto_id, categoria_id, fecha, tipo, estado_tecnico, observaciones,
+                              creada_en, creada_por, actualizada_en, actualizada_por)
+    SELECT escuderia_id, id, categoria_id, ?, ?, ?, ?, ?, ?, ?, ? FROM pilotos WHERE id = ?`);
+  for (const [piloto, fecha, tipo, estado, observaciones] of INSPECCIONES) {
+    insertar.run(fecha, tipo, estado, observaciones, marca, adminId, marca, adminId, pilotos.get(piloto));
+  }
+}
+
 const ESCUDERIA_PENDIENTE = {
   nombreOficial: 'Cordillera Motorsport',
   categoria: 'F2',
@@ -201,6 +341,9 @@ export async function cargarDatosDeDemostracion(db, config, ahora = new Date()) 
   );
 
   const cuentas = new Map();
+  const escuderias = new Map();
+  const pilotos = new Map();
+  const responsableDe = new Map();
   for (const escuderia of ESCUDERIAS) {
     const { email, nombre, apellido } = escuderia.responsable;
     if (!cuentas.has(email)) {
@@ -216,8 +359,16 @@ export async function cargarDatosDeDemostracion(db, config, ahora = new Date()) 
     }
     const escuderiaId = crearEscuderia(db, { ...escuderia, creadaPor: adminId }, ahora);
     asociarResponsable(db, cuentas.get(email), escuderiaId, adminId, ahora);
-    for (const piloto of escuderia.pilotos) crearPiloto(db, escuderiaId, piloto, ahora);
+    const clave = `${escuderia.nombreOficial}|${escuderia.categoria}`;
+    escuderias.set(clave, escuderiaId);
+    responsableDe.set(clave, cuentas.get(email));
+    for (const piloto of escuderia.pilotos) {
+      pilotos.set(`${escuderia.categoria}#${piloto.numero}`, crearPiloto(db, escuderiaId, piloto, ahora));
+    }
   }
+  cargarCalendario(db, adminId, marca);
+  cargarSanciones(db, adminId, marca, escuderias, pilotos, responsableDe);
+  cargarInspecciones(db, adminId, marca, pilotos);
 
   const p = ESCUDERIA_PENDIENTE;
   const pendienteId = db
@@ -250,6 +401,14 @@ export async function cargarDatosDeDemostracion(db, config, ahora = new Date()) 
 
   db.prepare(
     `INSERT INTO auditoria (fecha_hora, usuario_id, usuario_email, accion, detalle) VALUES (?, NULL, 'sistema', 'DATOS_DE_DEMOSTRACION', ?)`,
-  ).run(marca, JSON.stringify({ escuderias: ESCUDERIAS.length + 1 }));
+  ).run(
+    marca,
+    JSON.stringify({
+      escuderias: ESCUDERIAS.length + 1,
+      eventos: EVENTOS.length,
+      sanciones: SANCIONES.length,
+      inspecciones: INSPECCIONES.length,
+    }),
+  );
   return { enlace };
 }

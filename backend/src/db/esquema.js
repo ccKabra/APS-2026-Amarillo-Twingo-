@@ -6,6 +6,34 @@ export const CATEGORIAS = [
   { codigo: 'F1A', nombre: 'F1 Academy', orden: 4 },
 ];
 
+export const TIPOS_INFRACCION = [
+  { codigo: 'PESO_MINIMO', nombre: 'Peso mínimo del vehículo', clase: 'TECNICA' },
+  { codigo: 'DIMENSIONES', nombre: 'Dimensiones o carrocería fuera de reglamento', clase: 'TECNICA' },
+  { codigo: 'UNIDAD_DE_POTENCIA', nombre: 'Unidad de potencia no homologada', clase: 'TECNICA' },
+  { codigo: 'COMBUSTIBLE', nombre: 'Combustible fuera de especificación', clase: 'TECNICA' },
+  { codigo: 'NEUMATICOS', nombre: 'Uso irregular de neumáticos', clase: 'TECNICA' },
+  { codigo: 'VELOCIDAD_EN_BOXES', nombre: 'Exceso de velocidad en boxes', clase: 'CARRERA' },
+  { codigo: 'LIMITES_DE_PISTA', nombre: 'Exceder los límites de pista', clase: 'CARRERA' },
+  { codigo: 'COLISION', nombre: 'Provocar una colisión', clase: 'CARRERA' },
+  { codigo: 'SALIDA_ANTICIPADA', nombre: 'Salida anticipada', clase: 'CARRERA' },
+  { codigo: 'BANDERAS', nombre: 'No respetar las banderas', clase: 'CARRERA' },
+  { codigo: 'CONDUCTA_ANTIDEPORTIVA', nombre: 'Conducta antideportiva', clase: 'CARRERA' },
+];
+
+export const TIPOS_INSPECCION = [
+  'PRE_CARRERA',
+  'POST_CARRERA',
+  'PESO',
+  'DIMENSIONES',
+  'UNIDAD_DE_POTENCIA',
+  'COMBUSTIBLE',
+  'SEGURIDAD',
+];
+export const ESTADOS_TECNICOS = ['APROBADO', 'OBSERVADO', 'RECHAZADO'];
+export const TIPOS_EVENTO = ['CARRERA', 'CLASIFICACION', 'PRACTICA', 'PRUEBA', 'OTRO'];
+
+const lista = (valores) => valores.map((v) => `'${v}'`).join(', ');
+
 export const ESQUEMA = `
 CREATE TABLE IF NOT EXISTS categorias (
   id      INTEGER PRIMARY KEY,
@@ -128,4 +156,73 @@ CREATE TABLE IF NOT EXISTS correos (
   error       TEXT,
   enviado_en  TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS tipos_infraccion (
+  id      INTEGER PRIMARY KEY,
+  codigo  TEXT NOT NULL UNIQUE,
+  nombre  TEXT NOT NULL,
+  clase   TEXT NOT NULL CHECK (clase IN ('TECNICA', 'CARRERA'))
+);
+
+CREATE TABLE IF NOT EXISTS sanciones (
+  id                  INTEGER PRIMARY KEY,
+  escuderia_id        INTEGER NOT NULL REFERENCES escuderias(id),
+  piloto_id           INTEGER REFERENCES pilotos(id),
+  categoria_id        INTEGER NOT NULL REFERENCES categorias(id),
+  tipo_infraccion_id  INTEGER NOT NULL REFERENCES tipos_infraccion(id),
+  fecha_infraccion    TEXT NOT NULL,
+  penalizacion        TEXT NOT NULL,
+  descripcion         TEXT NOT NULL,
+  estado              TEXT NOT NULL DEFAULT 'BORRADOR' CHECK (estado IN ('BORRADOR', 'PUBLICADA')),
+  creada_en           TEXT NOT NULL,
+  creada_por          INTEGER NOT NULL REFERENCES usuarios(id),
+  actualizada_en      TEXT NOT NULL,
+  publicada_en        TEXT,
+  publicada_por       INTEGER REFERENCES usuarios(id)
+);
+CREATE INDEX IF NOT EXISTS ix_sanciones_escuderia ON sanciones(escuderia_id);
+CREATE INDEX IF NOT EXISTS ix_sanciones_piloto ON sanciones(piloto_id);
+
+CREATE TABLE IF NOT EXISTS notificaciones_sancion (
+  id             INTEGER PRIMARY KEY,
+  sancion_id     INTEGER NOT NULL UNIQUE REFERENCES sanciones(id) ON DELETE CASCADE,
+  escuderia_id   INTEGER NOT NULL REFERENCES escuderias(id),
+  notificada_en  TEXT NOT NULL,
+  firmada_en     TEXT,
+  firmada_por    INTEGER REFERENCES usuarios(id)
+);
+
+CREATE TABLE IF NOT EXISTS inspecciones (
+  id              INTEGER PRIMARY KEY,
+  escuderia_id    INTEGER NOT NULL REFERENCES escuderias(id),
+  piloto_id       INTEGER NOT NULL REFERENCES pilotos(id),
+  categoria_id    INTEGER NOT NULL REFERENCES categorias(id),
+  fecha           TEXT NOT NULL,
+  tipo            TEXT NOT NULL CHECK (tipo IN (${lista(TIPOS_INSPECCION)})),
+  estado_tecnico  TEXT NOT NULL CHECK (estado_tecnico IN (${lista(ESTADOS_TECNICOS)})),
+  observaciones   TEXT,
+  creada_en       TEXT NOT NULL,
+  creada_por      INTEGER NOT NULL REFERENCES usuarios(id),
+  actualizada_en  TEXT NOT NULL,
+  actualizada_por INTEGER NOT NULL REFERENCES usuarios(id)
+);
+CREATE INDEX IF NOT EXISTS ix_inspecciones_escuderia ON inspecciones(escuderia_id);
+
+CREATE TABLE IF NOT EXISTS eventos_calendario (
+  id                INTEGER PRIMARY KEY,
+  categoria_id      INTEGER NOT NULL REFERENCES categorias(id),
+  nombre            TEXT NOT NULL,
+  tipo              TEXT NOT NULL CHECK (tipo IN (${lista(TIPOS_EVENTO)})),
+  circuito          TEXT NOT NULL,
+  pais              TEXT NOT NULL,
+  fecha             TEXT NOT NULL,
+  hora              TEXT,
+  estado            TEXT NOT NULL DEFAULT 'ESPECULATIVA' CHECK (estado IN ('ESPECULATIVA', 'OFICIAL')),
+  creado_en         TEXT NOT NULL,
+  creado_por        INTEGER NOT NULL REFERENCES usuarios(id),
+  actualizado_en    TEXT NOT NULL,
+  oficializado_en   TEXT,
+  oficializado_por  INTEGER REFERENCES usuarios(id)
+);
+CREATE INDEX IF NOT EXISTS ix_eventos_calendario_fecha ON eventos_calendario(fecha);
 `;

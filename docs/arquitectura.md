@@ -1,4 +1,4 @@
-# Arquitectura y decisiones técnicas — Sprint 1
+# Arquitectura y decisiones técnicas — Sprints 1 y 2
 
 Proyecto: **Plataforma Integral FIA** (Enunciado 1).
 Analistas y management: **Comisión Verde Césped**.
@@ -11,6 +11,14 @@ Historias implementadas en el Sprint 1:
 | 9   | Registro, autenticación y control de acceso por rol   | 5  |
 | 8   | Administración de cuentas de escuderías y pilotos     | 5  |
 | 2   | Gestión de nóminas de pilotos por escudería           | 3  |
+
+Historias implementadas en el Sprint 2:
+
+| US  | Historia                                              | SP |
+| --- | ----------------------------------------------------- | -- |
+| 1   | Administración de sanciones                           | 3  |
+| 4   | Registro de resultados de controles técnicos          | 5  |
+| 10  | Gestión del calendario de carreras y eventos          | 3  |
 
 ## 1. Vista general
 
@@ -28,7 +36,8 @@ Historias implementadas en el Sprint 1:
  │  /api/auth       registro, login, renovación, logout     │
  │  /api/admin      cuentas de escuderías y usuarios (FIA)  │
  │  /api/escuderia  nómina de pilotos (escudería)           │
- │  /api/fia        nómina general (FIA)                    │
+ │  /api/fia        nómina general, sanciones, inspecciones │
+ │                  y calendario (FIA)                      │
  │  /api/publico    vistas públicas + eventos en vivo       │
  │  middleware: sesión → rol → escudería seleccionada       │
  └──────────┬──────────────────────────────┬────────────────┘
@@ -111,6 +120,32 @@ Se consulta en *Panel FIA → Auditoría*.
 ### D10. Bajas lógicas
 Los pilotos y las escuderías no se borran: se marcan como dados de baja para conservar el historial (la FIA puede verlo).
 
+### D11. Sanciones: borrador, publicación y firma (US1)
+- La FIA guarda la sanción como **borrador** (editable y eliminable) y la **publica** cuando está lista; también puede hacer las dos cosas en un paso.
+  Una sanción publicada **no se modifica ni se elimina** (es un acto formal); las ediciones quedan en la auditoría.
+- Se asocia siempre a una **escudería** y, opcionalmente, a un **piloto** de su nómina activa. Si no tiene piloto, alcanza a toda la escudería.
+- Los tipos de infracción son un catálogo en la base (`tipos_infraccion`), separado en **técnicas** y **de carrera**.
+- Al publicar se crea el registro de la notificación (`notificaciones_sancion`) y se envía un correo a los responsables de la escudería.
+  La sanción figura como **«No enterado»** hasta que un responsable de **esa** escudería la firma desde *Mis sanciones*
+  (`POST /api/escuderia/:id/sanciones/:id/firmar`). La firma guarda usuario, fecha y hora, es única y queda auditada.
+- La vista pública muestra si la escudería firmó y cuándo; el nombre de quien firmó solo lo ven la FIA y la escudería.
+
+### D12. Controles técnicos: el vehículo se identifica por el número del piloto (US4)
+La plataforma no tiene un registro de vehículos: cada auto se identifica por el **número de su piloto** (como en la categoría).
+La inspección guarda la escudería y la categoría del vehículo, la fecha (no futura), el tipo de inspección y el estado técnico:
+**Aprobado**, **Aprobado con observaciones** o **No aprobado** (en estos dos últimos las observaciones son obligatorias).
+Los resultados se publican al guardar; la FIA puede modificarlos o eliminarlos y todo queda en la auditoría.
+
+### D13. Calendario: fechas especulativas y firma de fecha oficial (US10)
+Toda fecha nueva se publica como **especulativa**. Solo la FIA puede **firmarla como oficial** (`POST /api/fia/calendario/:id/oficializar`),
+lo que guarda quién y cuándo la firmó. Si después se cambia el **día o la hora** de una fecha oficial, vuelve a ser especulativa hasta que se firme
+de nuevo (cambiar el nombre, el circuito o el tipo no la afecta). El filtro por mes usa el formato `AAAA-MM`.
+
+### D14. Módulos por historia y avisos en vivo
+Cada historia del Sprint 2 tiene su archivo de rutas (`sanciones.js`, `inspecciones.js`, `calendario.js`) con un router público,
+uno de la FIA y, para sanciones, uno de escudería. El middleware `escuderiaSeleccionada` pasó a `middleware/autorizacion.js` para compartirlo.
+Los cambios públicos se avisan por SSE con los eventos `sanciones`, `inspecciones` y `calendario`, igual que la nómina (D9).
+
 ## 3. Modelo de datos
 
 ```
@@ -127,6 +162,14 @@ pilotos (id, escuderia_id, categoria_id, nombre, apellido, nacionalidad, fecha_n
          UNIQUE (categoria_id, numero) WHERE activo = 1
 auditoria (id, fecha_hora, usuario_id, usuario_email, accion, entidad, entidad_id, detalle, ip)
 correos (id, para, asunto, cuerpo, transporte, estado, error, enviado_en)
+tipos_infraccion (id, codigo*, nombre, clase)                                  clase: TECNICA · CARRERA
+sanciones (id, escuderia_id, piloto_id?, categoria_id, tipo_infraccion_id, fecha_infraccion, penalizacion, descripcion,
+           estado, creada_en, creada_por, actualizada_en, publicada_en, publicada_por)     estado: BORRADOR · PUBLICADA
+notificaciones_sancion (id, sancion_id*, escuderia_id, notificada_en, firmada_en, firmada_por)
+inspecciones (id, escuderia_id, piloto_id, categoria_id, fecha, tipo, estado_tecnico, observaciones,
+              creada_en, creada_por, actualizada_en, actualizada_por)       estado_tecnico: APROBADO · OBSERVADO · RECHAZADO
+eventos_calendario (id, categoria_id, nombre, tipo, circuito, pais, fecha, hora?, estado, creado_en, creado_por,
+                    actualizado_en, oficializado_en, oficializado_por)      estado: ESPECULATIVA · OFICIAL
 ```
 (*) únicos.
 
@@ -160,10 +203,23 @@ correos (id, para, asunto, cuerpo, transporte, estado, error, enviado_en)
 | PATCH | /api/escuderia/:escuderiaId/pilotos/:id/rol | ESCUDERIA | Cambio de rol Titular ↔ Suplente |
 | GET | /api/publico/categorias · /escuderias · /pilotos | — | Vistas públicas |
 | GET | /api/publico/eventos | — | Avisos en vivo (SSE) |
+| GET | /api/publico/sanciones | — | Sanciones publicadas (filtros `categoria`, `escuderia`, `piloto`) |
+| GET | /api/publico/sanciones/tipos-infraccion | — | Catálogo de tipos de infracción |
+| GET / POST | /api/fia/sanciones | FIA | Listado (filtros + `estado`) / alta (borrador, o publicada con `publicar: true`) |
+| PUT / DELETE | /api/fia/sanciones/:id | FIA | Modificación / eliminación de un borrador |
+| POST | /api/fia/sanciones/:id/publicar | FIA | Publicación: crea la notificación y avisa por correo |
+| GET | /api/escuderia/:escuderiaId/sanciones | ESCUDERIA | Sanciones publicadas de la escudería seleccionada (filtro `piloto`) |
+| POST | /api/escuderia/:escuderiaId/sanciones/:id/firmar | ESCUDERIA | Firma de la notificación («enterado») |
+| GET | /api/publico/inspecciones | — | Resultados de controles técnicos (filtros `categoria`, `escuderia`, `estadoTecnico`) |
+| POST / PUT / DELETE | /api/fia/inspecciones[/:id] | FIA | Alta / modificación / eliminación de una inspección |
+| GET | /api/publico/calendario | — | Fechas del calendario (filtros `categoria`, `mes`=AAAA-MM, `estado`) |
+| GET / POST | /api/fia/calendario | FIA | Listado con firmante / alta de una fecha (especulativa) |
+| PUT / DELETE | /api/fia/calendario/:id | FIA | Modificación / eliminación de una fecha |
+| POST | /api/fia/calendario/:id/oficializar | FIA | Firma de fecha oficial |
 
 Los errores tienen siempre el formato `{ "error": "CODIGO", "mensaje": "texto para el usuario", "detalles": { campo: mensaje } }`.
 
 ## 5. Pruebas automáticas
-`npm test` ejecuta 71 pruebas de integración (`backend/tests`) que levantan la API sobre una base en memoria
+`npm test` ejecuta 128 pruebas de integración (`backend/tests`) que levantan la API sobre una base en memoria
 y verifican cada criterio de aceptación (ver `criterios-de-aceptacion.md`). Usan un reloj simulado para probar
 la expiración por inactividad, la duración máxima de la sesión, el fin del bloqueo y el vencimiento de los enlaces.

@@ -14,6 +14,9 @@ import { rutasDeAdministracion } from './routes/admin.js';
 import { rutasDeEscuderia } from './routes/escuderia.js';
 import { rutasPublicas } from './routes/publico.js';
 import { rutasDeLaFia } from './routes/fia.js';
+import { rutasDeSanciones } from './routes/sanciones.js';
+import { rutasDeInspecciones } from './routes/inspecciones.js';
+import { rutasDeCalendario } from './routes/calendario.js';
 
 function cors(origen) {
   return (req, res, next) => {
@@ -42,9 +45,14 @@ export function crearApp({ db, config, reloj = relojDelSistema }) {
   const correo = crearServicioDeCorreo({ db, config, reloj });
   const eventos = crearCanalDeEventos();
   const consultas = crearConsultas(db);
-  const middlewares = crearMiddlewares({ sesiones, auditoria });
+  const middlewares = crearMiddlewares({ db, sesiones, auditoria });
   const ctx = { db, config, reloj, auditoria, sesiones, correo, eventos, consultas, middlewares };
-  const { requiereSesion, requiereRol } = middlewares;
+  const { requiereSesion, requiereRol, escuderiaSeleccionada } = middlewares;
+  const sanciones = rutasDeSanciones(ctx);
+  const inspecciones = rutasDeInspecciones(ctx);
+  const calendario = rutasDeCalendario(ctx);
+  const soloFia = [requiereSesion, requiereRol('FIA')];
+  const soloEscuderia = [requiereSesion, requiereRol('ESCUDERIA')];
 
   const app = express();
   app.disable('x-powered-by');
@@ -54,10 +62,17 @@ export function crearApp({ db, config, reloj = relojDelSistema }) {
 
   app.get('/api/salud', (req, res) => res.json({ estado: 'ok', hora: reloj.ahora().toISOString() }));
   app.use('/api/auth', rutasDeAutenticacion(ctx));
+  app.use('/api/publico/sanciones', sanciones.publicas);
+  app.use('/api/publico/inspecciones', inspecciones.publicas);
+  app.use('/api/publico/calendario', calendario.publicas);
   app.use('/api/publico', rutasPublicas(ctx));
-  app.use('/api/admin', requiereSesion, requiereRol('FIA'), rutasDeAdministracion(ctx));
-  app.use('/api/fia', requiereSesion, requiereRol('FIA'), rutasDeLaFia(ctx));
-  app.use('/api/escuderia', requiereSesion, requiereRol('ESCUDERIA'), rutasDeEscuderia(ctx));
+  app.use('/api/admin', ...soloFia, rutasDeAdministracion(ctx));
+  app.use('/api/fia/sanciones', ...soloFia, sanciones.fia);
+  app.use('/api/fia/inspecciones', ...soloFia, inspecciones.fia);
+  app.use('/api/fia/calendario', ...soloFia, calendario.fia);
+  app.use('/api/fia', ...soloFia, rutasDeLaFia(ctx));
+  app.use('/api/escuderia/:escuderiaId/sanciones', ...soloEscuderia, escuderiaSeleccionada, sanciones.escuderia);
+  app.use('/api/escuderia', ...soloEscuderia, rutasDeEscuderia(ctx));
   app.use('/api', (req, res) => res.status(404).json({ error: 'NO_ENCONTRADO', mensaje: 'La ruta de la API no existe.' }));
 
   const indice = path.join(config.webDist, 'index.html');

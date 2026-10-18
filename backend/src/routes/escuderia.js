@@ -8,15 +8,10 @@ const ROLES = ['TITULAR', 'SUPLENTE'];
 const NOMBRES_DE_ROL = ['Titular', 'Suplente'];
 
 export function rutasDeEscuderia(ctx) {
-  const { db, reloj, auditoria, eventos, consultas } = ctx;
+  const { db, reloj, auditoria, eventos, consultas, middlewares } = ctx;
+  const { escuderiaSeleccionada } = middlewares;
   const rutas = Router();
 
-  const escuderiaAsociada = db.prepare(`
-    SELECT e.id, e.nombre_oficial, e.activa, e.categoria_id, c.codigo AS categoria, c.nombre AS categoria_nombre
-    FROM usuario_escuderia ue
-    JOIN escuderias e ON e.id = ue.escuderia_id
-    JOIN categorias c ON c.id = e.categoria_id
-    WHERE ue.usuario_id = ? AND e.id = ?`);
   const sqlPiloto = `
     SELECT p.*, e.nombre_oficial AS escuderia_nombre, c.codigo AS categoria, c.nombre AS categoria_nombre
     FROM pilotos p
@@ -38,25 +33,6 @@ export function rutasDeEscuderia(ctx) {
     WHERE id = ?`);
   const cambiarRol = db.prepare('UPDATE pilotos SET rol = ?, actualizado_en = ? WHERE id = ?');
   const darDeBaja = db.prepare('UPDATE pilotos SET activo = 0, dado_de_baja_en = ?, actualizado_en = ? WHERE id = ?');
-
-  function escuderiaSeleccionada(req, res, next) {
-    const id = Number(req.params.escuderiaId);
-    const escuderia = Number.isInteger(id) ? escuderiaAsociada.get(req.usuario.id, id) : undefined;
-    if (!escuderia) {
-      auditoria.registrar({
-        usuario: req.usuario,
-        accion: 'ACCESO_DENEGADO',
-        entidad: 'escuderia',
-        entidadId: Number.isInteger(id) ? id : null,
-        detalle: { motivo: 'ESCUDERIA_NO_ASOCIADA', metodo: req.method, ruta: req.originalUrl },
-        ip: req.ip,
-      });
-      return next(errores.prohibido('Solo podés gestionar las escuderías asociadas a tu cuenta.'));
-    }
-    if (!escuderia.activa) return next(errores.prohibido('La escudería seleccionada está dada de baja.'));
-    req.escuderia = escuderia;
-    return next();
-  }
 
   function pilotoDeLaEscuderia(req) {
     const id = Number(req.params.pilotoId);

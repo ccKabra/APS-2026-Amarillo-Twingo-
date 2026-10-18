@@ -27,7 +27,7 @@ function abrirNavegador(url) {
 
 const servidor = app.listen(config.puerto, '0.0.0.0', () => {
   const webCompilada = fs.existsSync(path.join(config.webDist, 'index.html'));
-  console.log('\n🏁 Plataforma Integral FIA — Sprint 1');
+  console.log('\n🏁 Plataforma Integral FIA — Sprint 2');
   console.log(`   API:  ${config.urlPublica}/api`);
   console.log(
     `   Web:  ${webCompilada ? config.urlPublica : `${config.urlWebDesarrollo} (modo desarrollo: corré "npm run dev:web")`}`,

@@ -6,10 +6,17 @@ import { inicioSegunRol, useSesion } from './sesion.jsx';
 import { ActivarCuenta, CrearCuenta, IniciarSesion } from './paginas/Acceso.jsx';
 import MiCuenta from './paginas/MiCuenta.jsx';
 import PilotosPublico from './paginas/publico/Pilotos.jsx';
+import CalendarioPublico from './paginas/publico/Calendario.jsx';
+import SancionesPublicas from './paginas/publico/Sanciones.jsx';
+import InspeccionesPublicas from './paginas/publico/Inspecciones.jsx';
 import { DetalleDeEscuderia, ListaDeEscuderias, NuevaEscuderia } from './paginas/fia/Escuderias.jsx';
 import Usuarios from './paginas/fia/Usuarios.jsx';
 import { Auditoria, Correos, NominaGeneral } from './paginas/fia/Seguimiento.jsx';
+import CalendarioFia from './paginas/fia/Calendario.jsx';
+import SancionesFia from './paginas/fia/Sanciones.jsx';
+import InspeccionesFia from './paginas/fia/Inspecciones.jsx';
 import NominaDeEscuderia from './paginas/escuderia/Nomina.jsx';
+import SancionesDeEscuderia from './paginas/escuderia/Sanciones.jsx';
 
 function Inicio() {
   const { usuario, cargando } = useSesion();
@@ -37,6 +44,9 @@ export default function App() {
         <Route path="registro" element={<CrearCuenta />} />
         <Route path="activar" element={<ActivarCuenta />} />
         <Route path="pilotos" element={<PilotosPublico />} />
+        <Route path="calendario" element={<CalendarioPublico />} />
+        <Route path="sanciones" element={<SancionesPublicas />} />
+        <Route path="controles-tecnicos" element={<InspeccionesPublicas />} />
         <Route
           path="mi-cuenta"
           element={
@@ -45,7 +55,6 @@ export default function App() {
             </Guardia>
           }
         />
-        {}
         <Route path="fia" element={<Guardia roles={['FIA']} />}>
           <Route index element={<Navigate to="escuderias" replace />} />
           <Route path="escuderias" element={<ListaDeEscuderias />} />
@@ -53,13 +62,16 @@ export default function App() {
           <Route path="escuderias/:id" element={<DetalleDeEscuderia />} />
           <Route path="usuarios" element={<Usuarios />} />
           <Route path="nomina" element={<NominaGeneral />} />
+          <Route path="calendario" element={<CalendarioFia />} />
+          <Route path="sanciones" element={<SancionesFia />} />
+          <Route path="controles-tecnicos" element={<InspeccionesFia />} />
           <Route path="auditoria" element={<Auditoria />} />
           <Route path="correos" element={<Correos />} />
         </Route>
-        {}
         <Route path="escuderia" element={<Guardia roles={['ESCUDERIA']} />}>
           <Route index element={<Navigate to="nomina" replace />} />
           <Route path="nomina" element={<NominaDeEscuderia />} />
+          <Route path="sanciones" element={<SancionesDeEscuderia />} />
         </Route>
         <Route path="*" element={<NoEncontrado />} />
       </Route>

@@ -2,7 +2,7 @@
   "name": "plataforma-fia",
   "version": "1.0.0",
   "private": true,
-  "description": "Plataforma Integral FIA - Sprint 1 (US9, US8 y US2 de la Comisión Verde Césped)",
+  "description": "Plataforma Integral FIA - Sprints 1 y 2 (US9, US8, US2, US1, US4 y US10 de la Comisión Verde Césped)",
   "scripts": {
     "instalar": "npm install --prefix backend && npm install --prefix web",
     "demo": "npm run build --prefix web && npm run seed --prefix backend -- --si-vacia && npm start --prefix backend",

@@ -194,7 +194,7 @@ export function PantallaServidor({ irA }) {
         <Text style={estilos.titulo}>Servidor</Text>
         <Text style={estilos.subtitulo}>
           Dirección del backend. Al iniciarlo, la consola de la PC muestra la dirección para la app (por ejemplo
-          http:
+          http://192.168.0.15:3000).
         </Text>
         {estado && <Aviso tono={estado.tono}>{estado.texto}</Aviso>}
         <Campo etiqueta="URL del servidor" value={url} onChangeText={setUrl} autoCapitalize="none" keyboardType="url" />
