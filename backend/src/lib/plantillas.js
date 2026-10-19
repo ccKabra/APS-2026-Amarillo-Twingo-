@@ -42,6 +42,36 @@ export function credencialesFia({ nombre, email, enlace, validezHoras }) {
   };
 }
 
+function fechaLegible(fechaIso) {
+  const [anio, mes, dia] = fechaIso.split('-');
+  return `${dia}/${mes}/${anio}`;
+}
+
+export function sancionPublicada({ nombre, sancion, enlace }) {
+  const alcance = sancion.piloto
+    ? `  • Piloto: ${sancion.piloto.nombre} ${sancion.piloto.apellido} (N° ${sancion.piloto.numero})`
+    : '  • Alcance: toda la escudería';
+  return {
+    asunto: `Notificación de sanción · ${sancion.escuderia.nombreOficial}`,
+    texto: [
+      `Hola ${nombre}:`,
+      '',
+      `La FIA publicó una sanción para ${sancion.escuderia.nombreOficial} (${sancion.categoria.nombre}).`,
+      '',
+      `  • Infracción: ${sancion.tipoInfraccion.nombre}`,
+      alcance,
+      `  • Fecha de la infracción: ${fechaLegible(sancion.fechaInfraccion)}`,
+      `  • Penalización: ${sancion.penalizacion}`,
+      '',
+      sancion.descripcion,
+      '',
+      'La sanción figura como «No enterado» hasta que la escudería firme la notificación desde la plataforma:',
+      `  ${enlace}`,
+      FIRMA,
+    ].join('\n'),
+  };
+}
+
 export function escuderiaAsignada({ nombre, escuderia }) {
   return {
     asunto: `Se te asignó la escudería ${escuderia.nombreOficial}`,

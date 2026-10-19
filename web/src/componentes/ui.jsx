@@ -30,6 +30,16 @@ export function Cargando({ texto = 'Cargando…' }) {
   );
 }
 
+export function InsigniaDeEstado({ estados, estado, children }) {
+  const e = estados[estado] ?? { texto: estado, tono: 'neutro' };
+  return (
+    <Insignia tono={e.tono}>
+      {e.texto}
+      {children}
+    </Insignia>
+  );
+}
+
 export function Campo({ etiqueta, error, ayuda, id, children, opcional }) {
   return (
     <div className={`campo${error ? ' campo--error' : ''}`}>
@@ -126,22 +136,27 @@ export function passwordCumplePolitica(password, minLongitud) {
   return reglasDePassword(password, minLongitud).every((regla) => regla.cumple);
 }
 
-// Escucha los avisos de cambios en la nómina (Server-Sent Events) y ejecuta alCambiar.
-export function useEventosDeNomina(alCambiar) {
+export function useEventosEnVivo(tipos, alCambiar) {
   const [enVivo, setEnVivo] = useState(false);
+  const clave = [].concat(tipos).join(',');
   useEffect(() => {
     if (typeof EventSource === 'undefined') return undefined;
     const fuente = new EventSource('/api/publico/eventos');
     fuente.onopen = () => setEnVivo(true);
     fuente.onerror = () => setEnVivo(false);
     const manejador = (evento) => alCambiar(JSON.parse(evento.data));
-    fuente.addEventListener('nomina', manejador);
+    const lista = clave.split(',');
+    lista.forEach((tipo) => fuente.addEventListener(tipo, manejador));
     return () => {
-      fuente.removeEventListener('nomina', manejador);
+      lista.forEach((tipo) => fuente.removeEventListener(tipo, manejador));
       fuente.close();
     };
-  }, [alCambiar]);
+  }, [clave, alCambiar]);
   return enVivo;
+}
+
+export function useEventosDeNomina(alCambiar) {
+  return useEventosEnVivo('nomina', alCambiar);
 }
 
 export function IndicadorEnVivo({ enVivo, ultimaActualizacion }) {

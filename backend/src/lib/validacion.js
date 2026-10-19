@@ -20,6 +20,25 @@ export function esFechaIso(valor) {
   return !Number.isNaN(fecha.getTime()) && fecha.toISOString().slice(0, 10) === valor;
 }
 
+export function idDeRuta(valor, mensaje) {
+  const n = Number(valor);
+  if (!Number.isInteger(n) || n <= 0) throw errores.noEncontrado(mensaje);
+  return n;
+}
+
+export function idDeFiltro(valor) {
+  const n = Number(valor);
+  return Number.isInteger(n) && n > 0 ? n : null;
+}
+
+export function esMesIso(valor) {
+  return typeof valor === 'string' && /^\d{4}-(0[1-9]|1[0-2])$/.test(valor);
+}
+
+export function fechaIsoDe(fecha) {
+  return fecha.toISOString().slice(0, 10);
+}
+
 export function edadEn(fechaIso, hoy) {
   const nacimiento = new Date(`${fechaIso}T00:00:00Z`);
   let edad = hoy.getUTCFullYear() - nacimiento.getUTCFullYear();
@@ -89,6 +108,48 @@ export class Validador {
       }
     }
     return v;
+  }
+
+  parrafo(campo, valor, etiqueta, { min = 1, max = 1000 } = {}) {
+    const v =
+      typeof valor === 'string'
+        ? valor
+            .trim()
+            .replace(/[ \t]+/g, ' ')
+            .replace(/\n{3,}/g, '\n\n')
+        : '';
+    if (!v) this.errores[campo] = `«${etiqueta}» es un dato obligatorio.`;
+    else if (v.length < min) this.errores[campo] = `«${etiqueta}» debe tener al menos ${min} caracteres.`;
+    else if (v.length > max) this.errores[campo] = `«${etiqueta}» no puede superar los ${max} caracteres.`;
+    return v;
+  }
+
+  fecha(campo, valor, etiqueta, { hasta } = {}) {
+    const v = typeof valor === 'string' ? valor.trim() : '';
+    if (!v) this.errores[campo] = `«${etiqueta}» es un dato obligatorio.`;
+    else if (!esFechaIso(v)) this.errores[campo] = `«${etiqueta}» debe ser una fecha válida (AAAA-MM-DD).`;
+    else if (hasta && v > hasta) this.errores[campo] = `«${etiqueta}» no puede ser una fecha futura.`;
+    return v;
+  }
+
+  hora(campo, valor, etiqueta) {
+    const v = typeof valor === 'string' ? valor.trim() : '';
+    if (!v) return null;
+    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(v)) this.errores[campo] = `«${etiqueta}» debe tener el formato HH:MM.`;
+    return v;
+  }
+
+  id(campo, valor, etiqueta) {
+    if (valor === undefined || valor === null || valor === '') {
+      this.errores[campo] = `«${etiqueta}» es un dato obligatorio.`;
+      return null;
+    }
+    const n = Number(valor);
+    if (!Number.isInteger(n) || n <= 0) {
+      this.errores[campo] = `«${etiqueta}» no es válido.`;
+      return null;
+    }
+    return n;
   }
 
   agregar(campo, mensaje) {

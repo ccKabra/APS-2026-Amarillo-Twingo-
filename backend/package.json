@@ -1,7 +1,7 @@
 {
   "name": "plataforma-fia-backend",
   "version": "1.0.0",
-  "description": "API de la Plataforma Integral FIA - Sprint 1 (US9, US8, US2)",
+  "description": "API de la Plataforma Integral FIA - Sprints 1 y 2 (US9, US8, US2, US1, US4, US10)",
   "private": true,
   "type": "module",
   "engines": {

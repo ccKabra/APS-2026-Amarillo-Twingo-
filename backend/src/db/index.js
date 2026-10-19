@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
-import { CATEGORIAS, ESQUEMA } from './esquema.js';
+import { CATEGORIAS, ESQUEMA, TIPOS_INFRACCION } from './esquema.js';
 
 export function abrirBaseDeDatos(ruta) {
   const enMemoria = ruta === ':memory:';
@@ -12,6 +12,8 @@ export function abrirBaseDeDatos(ruta) {
   db.exec(ESQUEMA);
   const insertar = db.prepare('INSERT OR IGNORE INTO categorias (codigo, nombre, orden) VALUES (?, ?, ?)');
   for (const c of CATEGORIAS) insertar.run(c.codigo, c.nombre, c.orden);
+  const insertarTipo = db.prepare('INSERT OR IGNORE INTO tipos_infraccion (codigo, nombre, clase) VALUES (?, ?, ?)');
+  for (const t of TIPOS_INFRACCION) insertarTipo.run(t.codigo, t.nombre, t.clase);
   return db;
 }
 

@@ -22,7 +22,7 @@ export function cargarConfig(env = process.env) {
     raiz,
     dbRuta: env.DB_PATH || path.join(raiz, 'data', 'fia.db'),
     urlPublica: (env.PUBLIC_URL || `http://localhost:${puerto}`).replace(/\/$/, ''),
-    urlWebDesarrollo: (env.WEB_DEV_URL || 'http:
+    urlWebDesarrollo: (env.WEB_DEV_URL || 'http://localhost:5173').replace(/\/$/, ''),
     webDist: env.WEB_DIST || path.resolve(raiz, '..', 'web', 'dist'),
     corsOrigen: env.CORS_ORIGIN || '*',
     password: {

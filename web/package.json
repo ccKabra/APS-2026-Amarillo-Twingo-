@@ -1,7 +1,7 @@
 {
   "name": "plataforma-fia-web",
   "version": "1.0.0",
-  "description": "Interfaz web de la Plataforma Integral FIA - Sprint 1",
+  "description": "Interfaz web de la Plataforma Integral FIA - Sprints 1 y 2",
   "private": true,
   "type": "module",
   "scripts": {

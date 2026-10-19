@@ -30,7 +30,7 @@ const ETIQUETAS = {
   rol: 'Rol',
 };
 
-function leerSeleccion() {
+export function leerSeleccion() {
   try {
     return Number(sessionStorage.getItem(CLAVE_SELECCION)) || null;
   } catch {
@@ -38,7 +38,7 @@ function leerSeleccion() {
   }
 }
 
-function guardarSeleccion(id) {
+export function guardarSeleccion(id) {
   try {
     sessionStorage.setItem(CLAVE_SELECCION, String(id));
   } catch {

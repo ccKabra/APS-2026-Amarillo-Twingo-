@@ -105,3 +105,38 @@ export function pilotoValido(extra = {}) {
     ...extra,
   };
 }
+
+export async function escucharEventos(base) {
+  const controlador = new AbortController();
+  const respuesta = await fetch(`${base}/api/publico/eventos`, { signal: controlador.signal });
+  const lector = respuesta.body.getReader();
+  const decodificador = new TextDecoder();
+  let recibido = '';
+  return {
+    async esperar(patron, ms = 2000) {
+      const limite = Date.now() + ms;
+      while (!patron.test(recibido) && Date.now() < limite) {
+        const { value, done } = await lector.read();
+        if (done) break;
+        recibido += decodificador.decode(value);
+      }
+      controlador.abort();
+      return recibido;
+    },
+  };
+}
+
+export async function idsDemo(s) {
+  const { body: e } = await s.api('GET', '/api/publico/escuderias');
+  const { body: p } = await s.api('GET', '/api/publico/pilotos');
+  const escuderia = (nombre, categoria) => e.escuderias.find((x) => x.nombreOficial === nombre && x.categoria === categoria);
+  const piloto = (categoria, numero) => p.pilotos.find((x) => x.categoria.codigo === categoria && x.numero === numero);
+  return {
+    andes: escuderia('Andes Racing Team', 'F1'),
+    atlantico: escuderia('Atlántico Grand Prix', 'F1'),
+    pampaF2: escuderia('Pampa Motorsport', 'F2'),
+    pampaF3: escuderia('Pampa Motorsport', 'F3'),
+    aurora: escuderia('Aurora Racing', 'F1A'),
+    piloto,
+  };
+}

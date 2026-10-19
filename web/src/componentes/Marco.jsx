@@ -3,14 +3,21 @@ import { useSesion } from '../sesion.jsx';
 import { NOMBRE_DE_ROL } from '../formato.js';
 
 
+const SECCIONES_PUBLICAS = [
+  { a: '/pilotos', texto: 'Pilotos' },
+  { a: '/calendario', texto: 'Calendario' },
+  { a: '/sanciones', texto: 'Sanciones' },
+  { a: '/controles-tecnicos', texto: 'Controles técnicos' },
+];
+
 const MENUS = {
-  ANONIMO: [{ a: '/pilotos', texto: 'Pilotos' }],
-  PUBLICO: [
-    { a: '/pilotos', texto: 'Pilotos' },
-    { a: '/mi-cuenta', texto: 'Mi cuenta' },
-  ],
+  ANONIMO: SECCIONES_PUBLICAS,
+  PUBLICO: [...SECCIONES_PUBLICAS, { a: '/mi-cuenta', texto: 'Mi cuenta' }],
   ESCUDERIA: [
     { a: '/escuderia/nomina', texto: 'Mi nómina' },
+    { a: '/escuderia/sanciones', texto: 'Mis sanciones' },
+    { a: '/calendario', texto: 'Calendario' },
+    { a: '/controles-tecnicos', texto: 'Controles técnicos' },
     { a: '/pilotos', texto: 'Vista pública' },
     { a: '/mi-cuenta', texto: 'Mi cuenta' },
   ],
@@ -18,6 +25,9 @@ const MENUS = {
     { a: '/fia/escuderias', texto: 'Escuderías' },
     { a: '/fia/usuarios', texto: 'Usuarios' },
     { a: '/fia/nomina', texto: 'Nómina general' },
+    { a: '/fia/calendario', texto: 'Calendario' },
+    { a: '/fia/sanciones', texto: 'Sanciones' },
+    { a: '/fia/controles-tecnicos', texto: 'Controles técnicos' },
     { a: '/fia/auditoria', texto: 'Auditoría' },
     { a: '/fia/correos', texto: 'Correos' },
     { a: '/mi-cuenta', texto: 'Mi cuenta' },
@@ -115,7 +125,7 @@ export default function Marco() {
       <main className="contenido">
         <Outlet />
       </main>
-      <footer className="pie">Plataforma Integral FIA · Sprint 1 · Proyecto académico APS 2026 (datos ficticios)</footer>
+      <footer className="pie">Plataforma Integral FIA · Sprint 2 · Proyecto académico APS 2026 (datos ficticios)</footer>
     </div>
   );
 }
