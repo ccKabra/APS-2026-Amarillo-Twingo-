@@ -8,6 +8,7 @@ import { crearAuditoria } from './lib/auditoria.js';
 import { crearServicioDeCorreo } from './lib/correo.js';
 import { crearCanalDeEventos } from './lib/eventos.js';
 import { crearConsultas } from './lib/consultas.js';
+import { crearServicioDeMensajeria } from './lib/mensajeria.js';
 import { crearMiddlewares } from './middleware/autorizacion.js';
 import { rutasDeAutenticacion } from './routes/auth.js';
 import { rutasDeAdministracion } from './routes/admin.js';
@@ -17,6 +18,9 @@ import { rutasDeLaFia } from './routes/fia.js';
 import { rutasDeSanciones } from './routes/sanciones.js';
 import { rutasDeInspecciones } from './routes/inspecciones.js';
 import { rutasDeCalendario } from './routes/calendario.js';
+import { rutasDeMensajes } from './routes/mensajes.js';
+import { rutasDeNeumaticos } from './routes/neumaticos.js';
+import { rutasDeReglamentos } from './routes/reglamentos.js';
 
 function cors(origen) {
   return (req, res, next) => {
@@ -45,12 +49,16 @@ export function crearApp({ db, config, reloj = relojDelSistema }) {
   const correo = crearServicioDeCorreo({ db, config, reloj });
   const eventos = crearCanalDeEventos();
   const consultas = crearConsultas(db);
+  const mensajeria = crearServicioDeMensajeria({ db, config, reloj });
   const middlewares = crearMiddlewares({ db, sesiones, auditoria });
-  const ctx = { db, config, reloj, auditoria, sesiones, correo, eventos, consultas, middlewares };
-  const { requiereSesion, requiereRol, escuderiaSeleccionada } = middlewares;
+  const ctx = { db, config, reloj, auditoria, sesiones, correo, eventos, consultas, mensajeria, middlewares };
+  const { requiereSesion, requiereSesionSinRenovar, requiereRol, escuderiaSeleccionada } = middlewares;
   const sanciones = rutasDeSanciones(ctx);
   const inspecciones = rutasDeInspecciones(ctx);
   const calendario = rutasDeCalendario(ctx);
+  const mensajes = rutasDeMensajes(ctx);
+  const neumaticos = rutasDeNeumaticos(ctx);
+  const reglamentos = rutasDeReglamentos(ctx);
   const soloFia = [requiereSesion, requiereRol('FIA')];
   const soloEscuderia = [requiereSesion, requiereRol('ESCUDERIA')];
 
@@ -65,13 +73,21 @@ export function crearApp({ db, config, reloj = relojDelSistema }) {
   app.use('/api/publico/sanciones', sanciones.publicas);
   app.use('/api/publico/inspecciones', inspecciones.publicas);
   app.use('/api/publico/calendario', calendario.publicas);
+  app.use('/api/publico/neumaticos', neumaticos.publicas);
+  app.use('/api/publico/reglamentos', reglamentos.publicas);
   app.use('/api/publico', rutasPublicas(ctx));
   app.use('/api/admin', ...soloFia, rutasDeAdministracion(ctx));
   app.use('/api/fia/sanciones', ...soloFia, sanciones.fia);
   app.use('/api/fia/inspecciones', ...soloFia, inspecciones.fia);
   app.use('/api/fia/calendario', ...soloFia, calendario.fia);
+  app.get('/api/fia/mensajes/no-leidos', requiereSesionSinRenovar, requiereRol('FIA'), ...mensajes.noLeidosFia);
+  app.use('/api/fia/mensajes', ...soloFia, mensajes.fia);
+  app.use('/api/fia/neumaticos', ...soloFia, neumaticos.fia);
+  app.use('/api/fia/reglamentos', ...soloFia, reglamentos.fia);
   app.use('/api/fia', ...soloFia, rutasDeLaFia(ctx));
   app.use('/api/escuderia/:escuderiaId/sanciones', ...soloEscuderia, escuderiaSeleccionada, sanciones.escuderia);
+  app.get('/api/escuderia/mensajes/no-leidos', requiereSesionSinRenovar, requiereRol('ESCUDERIA'), ...mensajes.noLeidosEscuderia);
+  app.use('/api/escuderia/:escuderiaId/mensajes', ...soloEscuderia, escuderiaSeleccionada, mensajes.escuderia);
   app.use('/api/escuderia', ...soloEscuderia, rutasDeEscuderia(ctx));
   app.use('/api', (req, res) => res.status(404).json({ error: 'NO_ENCONTRADO', mensaje: 'La ruta de la API no existe.' }));
 

@@ -14,16 +14,21 @@ export function crearMiddlewares({ db, sesiones, auditoria }) {
     JOIN categorias c ON c.id = e.categoria_id
     WHERE ue.usuario_id = ? AND e.id = ?`);
 
-  function requiereSesion(req, res, next) {
-    const token = tokenDeLaSolicitud(req);
-    const resultado = sesiones.validar(token);
-    if (resultado.error) {
-      return next(errores.noAutenticado(resultado.error, MENSAJES_SESION[resultado.error]));
-    }
-    req.usuario = resultado.usuario;
-    req.sesion = resultado.sesion;
-    return next();
+  function exigirSesion(opciones) {
+    return (req, res, next) => {
+      const token = tokenDeLaSolicitud(req);
+      const resultado = sesiones.validar(token, opciones);
+      if (resultado.error) {
+        return next(errores.noAutenticado(resultado.error, MENSAJES_SESION[resultado.error]));
+      }
+      req.usuario = resultado.usuario;
+      req.sesion = resultado.sesion;
+      return next();
+    };
   }
+
+  const requiereSesion = exigirSesion();
+  const requiereSesionSinRenovar = exigirSesion({ registrarUso: false });
 
   function requiereRol(...roles) {
     return (req, res, next) => {
@@ -59,5 +64,5 @@ export function crearMiddlewares({ db, sesiones, auditoria }) {
     return next();
   }
 
-  return { requiereSesion, requiereRol, escuderiaSeleccionada };
+  return { requiereSesion, requiereSesionSinRenovar, requiereRol, escuderiaSeleccionada };
 }

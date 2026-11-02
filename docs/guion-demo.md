@@ -62,7 +62,25 @@ Usuarios de demostración: ver la tabla del README.
 - Si se configuró `SESSION_IDLE_MINUTES=1`: dejar la web sin tocar un minuto → vuelve al login con "La sesión se cerró por inactividad".
 
 ### 8. Pruebas automáticas — 30 s
-- `npm test` → 71 pruebas, una o más por cada criterio de aceptación (ver `criterios-de-aceptacion.md`).
+- `npm test` → 193 pruebas, una o más por cada criterio de aceptación (ver `criterios-de-aceptacion.md`).
+
+## Recorrido del Sprint 3
+
+Antes de empezar: `npm run reiniciar-datos` para cargar los datos nuevos (mensajes, pruebas de neumáticos y reglamentos). Borra los datos actuales.
+
+1. **US3.** Sin sesión, abrir Calendario: tocar un día, cambiar de categoría, pasar a Lista con Desde/Hasta y descargar el `.ics`.
+2. **US5.** Ventana A como FIA y ventana B (incógnito) como martin.rios@andesracing.test. Enviar desde la FIA mientras la escudería
+   está en otra página: aparece el contador y el aviso. Mostrar la tabla `mensajes` cifrada y el 403 al pedir la conversación de otra escudería.
+3. **US7.** Como FIA, firmar la fecha de Silverstone con la vista pública abierta. Intentar una tercera fecha en 2027: se rechaza.
+4. **US12.** Con la vista pública abierta, actualizar el Reglamento Técnico de F1: el público ve solo la versión nueva y la FIA conserva el historial.
+
+## Puntos para validar con Verde Césped (Sprint 3)
+
+1. **Cifrado de la US5.** Se usó la opción «homóloga»: cifrado en el servidor con AES-256-GCM, no E2E puro (decisión D16). ¿Lo aceptan?
+2. **Conversación única.** Hay una conversación por escudería, compartida por toda la administración FIA. ¿Hacen falta asuntos o hilos?
+3. **Neumáticos y categorías.** Las 2 fechas anuales son de todo el campeonato y no aparecen en el calendario de eventos. ¿Es correcto?
+4. **Tipos de reglamento.** Se definieron Técnico y Deportivo por categoría. ¿Falta alguno?
+5. **App móvil.** Las historias del Sprint 3 quedaron en la web; ninguna tarea pedía la app.
 
 ## Puntos para validar con Verde Césped
 

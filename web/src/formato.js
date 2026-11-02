@@ -48,6 +48,12 @@ export const ACCIONES_DE_AUDITORIA = {
   EVENTO_MODIFICACION: 'Modificación de fecha del calendario',
   EVENTO_OFICIALIZADO: 'Firma de fecha oficial',
   EVENTO_ELIMINADO: 'Eliminación de fecha del calendario',
+  MENSAJE_ENVIADO: 'Envío de mensaje directo',
+  PRUEBA_NEUMATICOS_ALTA: 'Alta de prueba de neumáticos',
+  PRUEBA_NEUMATICOS_MODIFICACION: 'Modificación de prueba de neumáticos',
+  PRUEBA_NEUMATICOS_FIRMA: 'Firma de prueba de neumáticos',
+  PRUEBA_NEUMATICOS_ELIMINADA: 'Eliminación de prueba de neumáticos',
+  REGLAMENTO_PUBLICADO: 'Publicación de reglamento',
 };
 
 export const CLASE_DE_INFRACCION = { TECNICA: 'Técnica', CARRERA: 'De carrera' };
@@ -85,6 +91,13 @@ export const ESTADO_DE_FECHA = {
   ESPECULATIVA: { texto: 'Especulativa', tono: 'aviso' },
   OFICIAL: { texto: 'Oficial', tono: 'ok' },
 };
+
+export const ESTADO_DE_PRUEBA = {
+  NO_OFICIAL: { texto: 'No oficial', tono: 'aviso' },
+  OFICIAL: { texto: 'Oficial', tono: 'ok' },
+};
+
+export const TIPOS_DE_REGLAMENTO = { TECNICO: 'Técnico', DEPORTIVO: 'Deportivo' };
 
 const fechaHora = new Intl.DateTimeFormat('es-AR', {
   day: '2-digit',
@@ -141,6 +154,10 @@ export function partesDeFecha(fechaIso) {
     mes: mesCorto.format(fecha).replace('.', ''),
     semana: diaDeSemana.format(fecha).replace('.', ''),
   };
+}
+
+export function formatearTamanio(bytes) {
+  return bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 export function edad(fechaIso) {

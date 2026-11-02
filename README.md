@@ -1,6 +1,6 @@
-# Plataforma Integral FIA — Sprint 1
+# Plataforma Integral FIA — Sprints 1, 2 y 3
 
-Implementación del Sprint 1 del proyecto del **Enunciado 1 (FIA)**, planificado por la **Comisión Verde Césped**
+Implementación de los Sprints 1, 2 y 3 del proyecto del **Enunciado 1 (FIA)**, planificado por la **Comisión Verde Césped**
 (analistas y management) y desarrollado por el equipo implementador: Di Meglio Francisco, Cabrera Lautaro,
 Casal Jeremías y Alzugaray Agustín.
 
@@ -9,9 +9,16 @@ Casal Jeremías y Alzugaray Agustín.
 | 9   | Registro, autenticación y control de acceso por rol   | Terminada  |
 | 8   | Administración de cuentas de escuderías y pilotos     | Terminada  |
 | 2   | Gestión de nóminas de pilotos por escudería           | Terminada  |
+| 1   | Administración de sanciones                           | Terminada  |
+| 4   | Registro de resultados de controles técnicos          | Terminada  |
+| 10  | Gestión del calendario de carreras y eventos          | Terminada  |
+| 3   | Consulta y descarga de calendarios                    | Terminada  |
+| 5   | Mensajería FIA-Escudería                              | Terminada  |
+| 7   | Prueba de neumáticos                                  | Terminada  |
+| 12  | Publicación de reglamentos                            | Terminada  |
 
 Incluye: API (Node.js + Express + SQLite), web (React) con las interfaces de FIA, escuderías y público,
-app móvil (React Native + Expo) y 71 pruebas automáticas, una o más por cada criterio de aceptación.
+app móvil (React Native + Expo) y 193 pruebas automáticas, una o más por cada criterio de aceptación.
 
 ## Requisitos
 
@@ -84,7 +91,7 @@ La primera vez, cargar los datos: `npm run reiniciar-datos`.
 npm test
 ```
 
-Ejecuta 71 pruebas de integración sobre una base en memoria (no tocan los datos de la demo).
+Ejecuta 193 pruebas de integración sobre una base en memoria (no tocan los datos de la demo).
 Cada prueba está nombrada según el criterio de aceptación que verifica: ver `docs/criterios-de-aceptacion.md`.
 
 ## Configuración
@@ -100,6 +107,7 @@ Todo es opcional. Copiar `backend/.env.example` como `backend/.env` y cambiar lo
 | `SESSION_IDLE_MINUTES` | 30 | Minutos sin actividad hasta que se cierra la sesión (poner 1 para mostrarlo en la demo) |
 | `SESSION_MAX_HOURS` | 12 | Duración máxima de una sesión |
 | `ACTIVATION_HOURS` | 72 | Validez del enlace de activación |
+| `MESSAGES_MASTER_KEY` | — | Clave maestra de la mensajería (32 bytes en Base64). Sin definir, se genera en `backend/data/mensajeria.key`. Perderla deja ilegibles los mensajes |
 | `MAIL_TRANSPORT` | desarrollo | `desarrollo`: los correos se ven en Panel FIA → Correos. `smtp`: se envían de verdad |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM` | — | Datos del servidor de correo si `MAIL_TRANSPORT=smtp` |
 

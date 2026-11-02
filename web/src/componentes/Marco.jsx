@@ -1,6 +1,9 @@
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useSesion } from '../sesion.jsx';
+import { ProveedorDeMensajes, useMensajesSinLeer } from '../mensajeria.jsx';
 import { NOMBRE_DE_ROL } from '../formato.js';
+import { Aviso } from './ui.jsx';
 
 
 const SECCIONES_PUBLICAS = [
@@ -8,6 +11,8 @@ const SECCIONES_PUBLICAS = [
   { a: '/calendario', texto: 'Calendario' },
   { a: '/sanciones', texto: 'Sanciones' },
   { a: '/controles-tecnicos', texto: 'Controles técnicos' },
+  { a: '/pruebas-neumaticos', texto: 'Pruebas de neumáticos' },
+  { a: '/reglamentos', texto: 'Reglamentos' },
 ];
 
 const MENUS = {
@@ -16,8 +21,11 @@ const MENUS = {
   ESCUDERIA: [
     { a: '/escuderia/nomina', texto: 'Mi nómina' },
     { a: '/escuderia/sanciones', texto: 'Mis sanciones' },
+    { a: '/escuderia/mensajes', texto: 'Mensajes', mensajes: true },
     { a: '/calendario', texto: 'Calendario' },
     { a: '/controles-tecnicos', texto: 'Controles técnicos' },
+    { a: '/pruebas-neumaticos', texto: 'Pruebas de neumáticos' },
+    { a: '/reglamentos', texto: 'Reglamentos' },
     { a: '/pilotos', texto: 'Vista pública' },
     { a: '/mi-cuenta', texto: 'Mi cuenta' },
   ],
@@ -28,6 +36,9 @@ const MENUS = {
     { a: '/fia/calendario', texto: 'Calendario' },
     { a: '/fia/sanciones', texto: 'Sanciones' },
     { a: '/fia/controles-tecnicos', texto: 'Controles técnicos' },
+    { a: '/fia/pruebas-neumaticos', texto: 'Pruebas de neumáticos' },
+    { a: '/fia/reglamentos', texto: 'Reglamentos' },
+    { a: '/fia/mensajes', texto: 'Mensajes', mensajes: true },
     { a: '/fia/auditoria', texto: 'Auditoría' },
     { a: '/fia/correos', texto: 'Correos' },
     { a: '/mi-cuenta', texto: 'Mi cuenta' },
@@ -67,11 +78,48 @@ export function Bandera({ tamanio = 30 }) {
   );
 }
 
+function ContadorDeMensajes() {
+  const { total } = useMensajesSinLeer();
+  if (total === 0) return null;
+  return (
+    <span className="contador-mensajes" aria-label={`${total} sin leer`}>
+      {total}
+    </span>
+  );
+}
+
+function AvisoDeMensajeNuevo({ destino }) {
+  const { novedades } = useMensajesSinLeer();
+  const ubicacion = useLocation();
+  const [visto, setVisto] = useState(0);
+  const enLaConversacion = ubicacion.pathname === destino;
+
+  useEffect(() => {
+    if (enLaConversacion) setVisto(novedades);
+  }, [enLaConversacion, novedades]);
+
+  if (novedades === visto || enLaConversacion) return null;
+  return (
+    <Aviso tono="info" alCerrar={() => setVisto(novedades)}>
+      Recibiste un mensaje nuevo. <Link to={destino}>Ver mensajes</Link>
+    </Aviso>
+  );
+}
+
 export default function Marco() {
+  return (
+    <ProveedorDeMensajes>
+      <Armazon />
+    </ProveedorDeMensajes>
+  );
+}
+
+function Armazon() {
   const { usuario, cerrarSesion } = useSesion();
   const ubicacion = useLocation();
   const rol = usuario?.rol ?? 'ANONIMO';
   const enPaginaDeAcceso = ['/login', '/registro', '/activar'].includes(ubicacion.pathname);
+  const destinoDeMensajes = MENUS[rol].find((item) => item.mensajes)?.a;
 
   return (
     <div className={`app rol-${rol.toLowerCase()}`}>
@@ -117,15 +165,17 @@ export default function Marco() {
             {MENUS[rol].map((item) => (
               <NavLink key={item.a} to={item.a} className={({ isActive }) => `navegacion__enlace${isActive ? ' activo' : ''}`}>
                 {item.texto}
+                {item.mensajes && <ContadorDeMensajes />}
               </NavLink>
             ))}
           </div>
         </nav>
       </header>
       <main className="contenido">
+        {destinoDeMensajes && <AvisoDeMensajeNuevo destino={destinoDeMensajes} />}
         <Outlet />
       </main>
-      <footer className="pie">Plataforma Integral FIA · Sprint 2 · Proyecto académico APS 2026 (datos ficticios)</footer>
+      <footer className="pie">Plataforma Integral FIA · Sprint 3 · Proyecto académico APS 2026 (datos ficticios)</footer>
     </div>
   );
 }

@@ -31,6 +31,7 @@ export const TIPOS_INSPECCION = [
 ];
 export const ESTADOS_TECNICOS = ['APROBADO', 'OBSERVADO', 'RECHAZADO'];
 export const TIPOS_EVENTO = ['CARRERA', 'CLASIFICACION', 'PRACTICA', 'PRUEBA', 'OTRO'];
+export const TIPOS_REGLAMENTO = ['DEPORTIVO', 'TECNICO'];
 
 const lista = (valores) => valores.map((v) => `'${v}'`).join(', ');
 
@@ -225,4 +226,64 @@ CREATE TABLE IF NOT EXISTS eventos_calendario (
   oficializado_por  INTEGER REFERENCES usuarios(id)
 );
 CREATE INDEX IF NOT EXISTS ix_eventos_calendario_fecha ON eventos_calendario(fecha);
+
+-- US5: una conversación por escudería con la FIA. La clave de la conversación se guarda cifrada con la clave maestra.
+CREATE TABLE IF NOT EXISTS conversaciones (
+  id              INTEGER PRIMARY KEY,
+  escuderia_id    INTEGER NOT NULL UNIQUE REFERENCES escuderias(id),
+  clave_envuelta  TEXT NOT NULL,
+  creada_en       TEXT NOT NULL
+);
+
+-- US5: el texto solo existe cifrado (AES-256-GCM); los metadatos quedan autenticados junto con el contenido.
+CREATE TABLE IF NOT EXISTS mensajes (
+  id                 INTEGER PRIMARY KEY,
+  conversacion_id    INTEGER NOT NULL REFERENCES conversaciones(id),
+  numero             INTEGER NOT NULL,
+  emisor_id          INTEGER NOT NULL REFERENCES usuarios(id),
+  emisor_lado        TEXT NOT NULL CHECK (emisor_lado IN ('FIA', 'ESCUDERIA')),
+  contenido_cifrado  TEXT NOT NULL,
+  enviado_en         TEXT NOT NULL,
+  leido_en           TEXT,
+  leido_por          INTEGER REFERENCES usuarios(id),
+  UNIQUE (conversacion_id, numero)
+);
+
+-- US7: dos fechas por año; quedan como no oficiales hasta que la FIA las firma.
+CREATE TABLE IF NOT EXISTS pruebas_neumaticos (
+  id              INTEGER PRIMARY KEY,
+  anio            INTEGER NOT NULL,
+  numero          INTEGER NOT NULL CHECK (numero IN (1, 2)),
+  fecha           TEXT NOT NULL,
+  hora            TEXT,
+  circuito        TEXT NOT NULL,
+  pais            TEXT NOT NULL,
+  cronograma      TEXT,
+  estado          TEXT NOT NULL DEFAULT 'NO_OFICIAL' CHECK (estado IN ('NO_OFICIAL', 'OFICIAL')),
+  creada_en       TEXT NOT NULL,
+  creada_por      INTEGER NOT NULL REFERENCES usuarios(id),
+  actualizada_en  TEXT NOT NULL,
+  firmada_en      TEXT,
+  firmada_por     INTEGER REFERENCES usuarios(id),
+  UNIQUE (anio, numero),
+  UNIQUE (fecha)
+);
+
+-- US12: cada publicación es una versión nueva. El índice garantiza una sola vigente por categoría y tipo.
+CREATE TABLE IF NOT EXISTS reglamentos (
+  id              INTEGER PRIMARY KEY,
+  categoria_id    INTEGER NOT NULL REFERENCES categorias(id),
+  tipo            TEXT NOT NULL CHECK (tipo IN (${lista(TIPOS_REGLAMENTO)})),
+  titulo          TEXT NOT NULL,
+  version         INTEGER NOT NULL,
+  documento       BLOB NOT NULL,
+  tamanio         INTEGER NOT NULL,
+  sha256          TEXT NOT NULL,
+  vigente         INTEGER NOT NULL DEFAULT 1 CHECK (vigente IN (0, 1)),
+  publicado_en    TEXT NOT NULL,
+  publicado_por   INTEGER NOT NULL REFERENCES usuarios(id),
+  reemplazado_en  TEXT,
+  UNIQUE (categoria_id, tipo, version)
+);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_reglamentos_vigente ON reglamentos(categoria_id, tipo) WHERE vigente = 1;
 `;

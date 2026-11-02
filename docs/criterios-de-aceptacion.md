@@ -1,4 +1,4 @@
-# Criterios de aceptación — Sprint 1
+# Criterios de aceptación — Sprints 1 y 3
 
 Cómo se cumple cada criterio definido por la Comisión Verde Césped, qué prueba automática lo verifica
 (`npm test`, carpeta `backend/tests`) y cómo mostrarlo en la demo. Usuarios de demostración en el README.
@@ -43,12 +43,45 @@ dar de baja y reactivar usuarios, crear otros administradores FIA y reenviar cre
 | 5 | Solo pilotos de las escuderías asociadas a su cuenta y sobre la escudería que tenga seleccionada. | Relación N a N cuenta–escudería y selector de escudería (decisión D6). | `US2 · Cuenta con varias escuderías…` (3 pruebas) | Ingresar como diego@pampamotorsport.test (F2 y F3) y cambiar de escudería. |
 | 6 | No se puede asignar el mismo número a dos pilotos de una misma categoría. | Índice único `(categoria_id, numero)` para pilotos activos + mensaje que indica quién usa el número. | "no permite asignar un número que ya usa otro piloto…", "el mismo número sí se puede usar en otra categoría", "al dar de baja… su número queda libre" | Intentar cargar el número 7 en Andes Racing Team (lo usa Atlántico GP). |
 
+## US3 — Consulta y descarga de calendarios (Sprint 3)
+
+| # | Criterio | Cómo se cumple | Prueba automática | En la demo |
+| --- | --- | --- | --- | --- |
+| 1 | El público puede ver el calendario interactivo con todas las carreras y eventos. | Página `/calendario` sin sesión: grilla mensual (al tocar un día se ven sus eventos) y lista. | `US3` → "el público ve todas las carreras y eventos…" | Tocar el 8 de noviembre. |
+| 2 | El sistema permite aplicar filtros fluidamente. | Categoría, mes, día y rango de fechas, sin recargar la página. | "filtra por rango de fechas…", "el rango se combina con la categoría", "rechaza fechas inválidas…" | Cambiar categoría y pasar a Lista con Desde/Hasta. |
+| 3 | El usuario tiene la opción de descargar el calendario. | Botón "Descargar calendario (.ics)", respeta los filtros. | "descarga el calendario…", "la descarga distingue…", "la descarga respeta los filtros…", "…75 octetos" | Descargar e importar en Google Calendar. |
+
+## US5 — Mensajería FIA-Escudería (Sprint 3)
+
+| # | Criterio | Cómo se cumple | Prueba automática | En la demo |
+| --- | --- | --- | --- | --- |
+| 1 | La escudería envía y recibe mensajes con la FIA desde su panel. | Panel de escudería → Mensajes; Panel FIA → Mensajes. | `US5 · Envío y recepción…` (6 pruebas) | Conversar entre dos ventanas. |
+| 2 | La información almacenada está totalmente cifrada, con integridad y confidencialidad. | AES-256-GCM con clave por conversación y metadatos autenticados (decisión D16). En tránsito requiere HTTPS en producción. | `US5 · El contenido se guarda cifrado…` (6 pruebas: sin texto en la base ni en la auditoría, alteración, cambio de emisor, copia entre conversaciones) | Abrir la tabla `mensajes` con DB Browser for SQLite. |
+| 3 | Solo el emisor y el receptor ven la conversación. | Rutas por rol más `escuderiaSeleccionada`; los intentos quedan auditados; el canal público no anuncia mensajes. | `US5 · Solo la escudería y la FIA acceden…` (6 pruebas) | Pedir por API la conversación de otra escudería: 403. |
+| 4 | El sistema notifica visualmente un mensaje nuevo. | Contador en el menú y aviso con enlace, actualizados cada 5 segundos. | `US5 · Notificación de mensajes nuevos` (4 pruebas) | Enviar desde la FIA con la escudería en otra página. |
+
+## US7 — Prueba de neumáticos (Sprint 3)
+
+| # | Criterio | Cómo se cumple | Prueba automática | En la demo |
+| --- | --- | --- | --- | --- |
+| 1 | La FIA ingresa y fija las fechas estipuladas. | Panel FIA → Pruebas de neumáticos; máximo 2 fechas distintas por año, con cronograma opcional. | `US7 · La FIA carga y fija…` (8 pruebas) | Intentar cargar una tercera fecha en 2027. |
+| 2 | Las fechas sin firmar figuran como no oficiales hasta que se firmen. | Estado NO_OFICIAL por defecto; firma exclusiva de la FIA; cambiar día u hora quita la firma. | `US7 · Las fechas figuran como no oficiales…` (6 pruebas) | Firmar la fecha de Silverstone. |
+| 3 | La información es visible para el público y las escuderías. | Página `/pruebas-neumaticos`, con aviso en vivo. | `US7 · Las fechas son visibles…` (3 pruebas) | Verla sin sesión y como escudería. |
+
+## US12 — Publicación de reglamentos (Sprint 3)
+
+| # | Criterio | Cómo se cumple | Prueba automática | En la demo |
+| --- | --- | --- | --- | --- |
+| 1 | La FIA carga un reglamento nuevo o actualiza el vigente de su categoría. | Panel FIA → Reglamentos: publicar o "Actualizar" con un PDF de hasta 10 MB. | `US12 · La FIA carga y actualiza…` (7 pruebas) | Actualizar el Reglamento Técnico de F1. |
+| 2 | El sistema muestra automáticamente la versión vigente, reemplazando las anteriores. | Versión correlativa, una sola vigente garantizada por la base; las anteriores quedan solo como historial de la FIA. | `US12 · El sistema muestra solo la versión oficial vigente` (7 pruebas) | Abrir el mismo enlace público antes y después. |
+| 3 | Escuderías y público acceden inmediatamente desde sus interfaces. | Página `/reglamentos` con aviso en vivo. | `US12 · Escuderías y público acceden…` (4 pruebas) | Dejar la vista pública abierta mientras se publica. |
+
 ## Resultado de la última ejecución
 
 ```
 npm test
-ℹ tests 71
-ℹ suites 13
-ℹ pass 71
+ℹ tests 193
+ℹ suites 35
+ℹ pass 193
 ℹ fail 0
 ```

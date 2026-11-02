@@ -1,6 +1,8 @@
+import crypto from 'node:crypto';
 import { asociarResponsable, crearEscuderia, crearPiloto, crearUsuarioActivo } from './altas.js';
 import { crearServicioDeCorreo } from '../lib/correo.js';
 import { crearConsultas } from '../lib/consultas.js';
+import { crearServicioDeMensajeria } from '../lib/mensajeria.js';
 import { credencialesEscuderia } from '../lib/plantillas.js';
 import { generarToken, hashToken } from '../lib/tokens.js';
 import { sumarMinutos } from '../lib/reloj.js';
@@ -305,6 +307,109 @@ function cargarInspecciones(db, adminId, marca, pilotos) {
   }
 }
 
+const PRUEBAS_NEUMATICOS = [
+  ['2027-02-24', '09:00', 'Circuito Internacional de Baréin', 'Baréin', 'Mañana: compuestos secos.\nTarde: simulación de carrera.', true],
+  ['2027-07-07', null, 'Circuito de Silverstone', 'Reino Unido', null, false],
+];
+
+const REGLAMENTOS = [
+  ['F1', 'TECNICO', 'Reglamento Técnico de Fórmula 1 2026', 1],
+  ['F1', 'TECNICO', 'Reglamento Técnico de Fórmula 1 2026 (revisión 2)', 2],
+  ['F1', 'DEPORTIVO', 'Reglamento Deportivo de Fórmula 1 2026', 1],
+  ['F2', 'TECNICO', 'Reglamento Técnico de Fórmula 2 2026', 1],
+  ['F3', 'DEPORTIVO', 'Reglamento Deportivo de Fórmula 3 2026', 1],
+];
+
+const MENSAJES = [
+  ['Andes Racing Team|F1', 'ESCUDERIA', 'Solicitamos una aclaración sobre la tolerancia del alerón trasero antes de la próxima fecha.'],
+  ['Andes Racing Team|F1', 'FIA', 'Recibido. La comisión técnica responde dentro de las próximas 48 horas.'],
+  ['Andes Racing Team|F1', 'ESCUDERIA', 'Gracias. Enviaremos las mediciones del último control en cuanto estén disponibles.'],
+  ['Pampa Motorsport|F2', 'FIA', 'Les recordamos presentar el descargo por la sanción de neumáticos.'],
+];
+
+function pdfDeDemostracion(titulo) {
+  const texto = titulo.normalize('NFD').replace(/[^\x20-\x7e]|[()\\]/g, '');
+  const contenido = `BT /F1 18 Tf 72 720 Td (${texto}) Tj ET`;
+  const objetos = [
+    '<< /Type /Catalog /Pages 2 0 R >>',
+    '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>',
+    `<< /Length ${contenido.length} >>\nstream\n${contenido}\nendstream`,
+    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
+  ];
+  let pdf = '%PDF-1.4\n';
+  const posiciones = objetos.map((objeto, i) => {
+    const posicion = pdf.length;
+    pdf += `${i + 1} 0 obj\n${objeto}\nendobj\n`;
+    return posicion;
+  });
+  const inicioXref = pdf.length;
+  const entradas = posiciones.map((p) => `${String(p).padStart(10, '0')} 00000 n \n`).join('');
+  pdf += `xref\n0 ${objetos.length + 1}\n0000000000 65535 f \n${entradas}`;
+  pdf += `trailer\n<< /Size ${objetos.length + 1} /Root 1 0 R >>\nstartxref\n${inicioXref}\n%%EOF\n`;
+  return Buffer.from(pdf, 'latin1');
+}
+
+function cargarPruebasDeNeumaticos(db, adminId, marca) {
+  const insertar = db.prepare(`
+    INSERT INTO pruebas_neumaticos (anio, numero, fecha, hora, circuito, pais, cronograma, estado, creada_en, creada_por,
+                                    actualizada_en, firmada_en, firmada_por)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+  PRUEBAS_NEUMATICOS.forEach(([fecha, hora, circuito, pais, cronograma, firmada], i) => {
+    insertar.run(
+      Number(fecha.slice(0, 4)),
+      i + 1,
+      fecha,
+      hora,
+      circuito,
+      pais,
+      cronograma,
+      firmada ? 'OFICIAL' : 'NO_OFICIAL',
+      marca,
+      adminId,
+      marca,
+      firmada ? marca : null,
+      firmada ? adminId : null,
+    );
+  });
+}
+
+function cargarReglamentos(db, adminId, marca) {
+  const insertar = db.prepare(`
+    INSERT INTO reglamentos (categoria_id, tipo, titulo, version, documento, tamanio, sha256, vigente, publicado_en, publicado_por,
+                             reemplazado_en)
+    VALUES ((SELECT id FROM categorias WHERE codigo = ?), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+  for (const [categoria, tipo, titulo, version] of REGLAMENTOS) {
+    const documento = pdfDeDemostracion(titulo);
+    const reemplazado = REGLAMENTOS.some((r) => r[0] === categoria && r[1] === tipo && r[3] > version);
+    insertar.run(
+      categoria,
+      tipo,
+      titulo,
+      version,
+      documento,
+      documento.length,
+      crypto.createHash('sha256').update(documento).digest('hex'),
+      reemplazado ? 0 : 1,
+      marca,
+      adminId,
+      reemplazado ? marca : null,
+    );
+  }
+}
+
+function cargarMensajes(db, config, ahora, adminId, escuderias, responsableDe) {
+  const mensajeria = crearServicioDeMensajeria({ db, config, reloj: { ahora: () => ahora } });
+  for (const [escuderia, lado, texto] of MENSAJES) {
+    mensajeria.enviar({
+      escuderiaId: escuderias.get(escuderia),
+      emisorId: lado === 'FIA' ? adminId : responsableDe.get(escuderia),
+      lado,
+      texto,
+    });
+  }
+}
+
 const ESCUDERIA_PENDIENTE = {
   nombreOficial: 'Cordillera Motorsport',
   categoria: 'F2',
@@ -369,6 +474,9 @@ export async function cargarDatosDeDemostracion(db, config, ahora = new Date()) 
   cargarCalendario(db, adminId, marca);
   cargarSanciones(db, adminId, marca, escuderias, pilotos, responsableDe);
   cargarInspecciones(db, adminId, marca, pilotos);
+  cargarPruebasDeNeumaticos(db, adminId, marca);
+  cargarReglamentos(db, adminId, marca);
+  cargarMensajes(db, config, ahora, adminId, escuderias, responsableDe);
 
   const p = ESCUDERIA_PENDIENTE;
   const pendienteId = db
@@ -408,6 +516,9 @@ export async function cargarDatosDeDemostracion(db, config, ahora = new Date()) 
       eventos: EVENTOS.length,
       sanciones: SANCIONES.length,
       inspecciones: INSPECCIONES.length,
+      pruebasDeNeumaticos: PRUEBAS_NEUMATICOS.length,
+      reglamentos: REGLAMENTOS.length,
+      mensajes: MENSAJES.length,
     }),
   );
   return { enlace };

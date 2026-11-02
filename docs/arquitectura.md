@@ -1,4 +1,4 @@
-# Arquitectura y decisiones técnicas — Sprints 1 y 2
+# Arquitectura y decisiones técnicas — Sprints 1, 2 y 3
 
 Proyecto: **Plataforma Integral FIA** (Enunciado 1).
 Analistas y management: **Comisión Verde Césped**.
@@ -19,6 +19,15 @@ Historias implementadas en el Sprint 2:
 | 1   | Administración de sanciones                           | 3  |
 | 4   | Registro de resultados de controles técnicos          | 5  |
 | 10  | Gestión del calendario de carreras y eventos          | 3  |
+
+Historias implementadas en el Sprint 3:
+
+| US  | Historia                                              | SP |
+| --- | ----------------------------------------------------- | -- |
+| 3   | Consulta y descarga de calendarios                    | 2  |
+| 5   | Mensajería FIA-Escudería                              | 8  |
+| 7   | Prueba de neumáticos                                  | 2  |
+| 12  | Publicación de reglamentos                            | 3  |
 
 ## 1. Vista general
 
@@ -146,6 +155,41 @@ Cada historia del Sprint 2 tiene su archivo de rutas (`sanciones.js`, `inspeccio
 uno de la FIA y, para sanciones, uno de escudería. El middleware `escuderiaSeleccionada` pasó a `middleware/autorizacion.js` para compartirlo.
 Los cambios públicos se avisan por SSE con los eventos `sanciones`, `inspecciones` y `calendario`, igual que la nómina (D9).
 
+### D15. Calendario público y descarga (US3)
+La vista pública ofrece una grilla mensual interactiva y una lista con filtro por rango de fechas (`desde`, `hasta`). La descarga usa
+el estándar iCalendar (`.ics`, RFC 5545) porque lo importan Google Calendar, Outlook y Apple Calendar, y respeta los filtros aplicados.
+Las fechas especulativas salen como `TENTATIVE` y las oficiales como `CONFIRMED`. La hora se exporta sin huso porque el calendario
+guarda la hora local del circuito sin su zona horaria. Duración estimada de cada evento con hora: 2 horas.
+
+### D16. Mensajería cifrada (US5): cifrado en el servidor, homólogo al de extremo a extremo
+La historia admite «end-to-end u homólogo». Se eligió **cifrado de sobre en el servidor con AES-256-GCM**:
+- Cada conversación (una por escudería) tiene su clave aleatoria, guardada cifrada con una clave maestra que no está en la base
+  (`MESSAGES_MASTER_KEY` o `backend/data/mensajeria.key`).
+- Cada mensaje usa un IV aleatorio. Conversación, número, emisor, lado y fecha se autentican junto con el texto (AAD): alterar el contenido
+  o esos metadatos, o mover un mensaje a otra conversación, hace fallar la verificación y el mensaje se muestra como dañado.
+- **Por qué no E2E puro:** los destinatarios son grupos (varios administradores FIA, varias cuentas por escudería), y E2E exigiría
+  distribuir claves privadas entre navegadores y dispositivos; quien pierde la clave pierde el historial.
+- **Límites conocidos:** quien tenga la clave maestra y la base (o controle el servidor) puede descifrar; por eso no equivale a E2E.
+  Borrar los últimos mensajes de una conversación directamente en la base no se detecta. `leido_en` no está autenticado.
+  En tránsito la protección depende de publicar la API con HTTPS (igual que las contraseñas, D2).
+- La auditoría registra el envío sin el contenido y las respuestas llevan `Cache-Control: no-store`.
+
+### D17. Avisos privados de mensajes (US5)
+El canal SSE (D9) es público, y anunciar ahí un mensaje revelaría cuándo se comunica cada escudería con la FIA. Por eso el contador se consulta
+cada 5 segundos con autenticación. Esa consulta usa `requiereSesionSinRenovar` para que no cuente como actividad: si contara,
+una pestaña abierta impediría que la sesión expire por inactividad en el servidor (US9).
+
+### D18. Pruebas de neumáticos (US7)
+Tabla propia con `UNIQUE (anio, numero)` y `numero IN (1, 2)`, de modo que la base garantiza el máximo de 2 fechas por año.
+La firma sigue la regla del calendario (D13): cambiar día u hora de una fecha firmada la devuelve a «no oficial».
+Son fechas de todo el campeonato, sin categoría, y por eso tienen su propia sección y no aparecen en el calendario de eventos.
+
+### D19. Reglamentos versionados (US12)
+Cada publicación agrega una fila con versión correlativa por categoría y tipo (Técnico o Deportivo), en una transacción que retira la vigente.
+Un índice único parcial garantiza una sola vigente. El enlace público (`/api/publico/reglamentos/:categoria/:tipo/documento`) no incluye
+la versión: siempre entrega la vigente, y las anteriores solo las ve la FIA como historial. El PDF (hasta 10 MB) se guarda como BLOB
+en SQLite para que el respaldo sea un único archivo, y se envía como cuerpo binario (`application/pdf`) porque el límite JSON general es de 50 kB.
+
 ## 3. Modelo de datos
 
 ```
@@ -170,6 +214,12 @@ inspecciones (id, escuderia_id, piloto_id, categoria_id, fecha, tipo, estado_tec
               creada_en, creada_por, actualizada_en, actualizada_por)       estado_tecnico: APROBADO · OBSERVADO · RECHAZADO
 eventos_calendario (id, categoria_id, nombre, tipo, circuito, pais, fecha, hora?, estado, creado_en, creado_por,
                     actualizado_en, oficializado_en, oficializado_por)      estado: ESPECULATIVA · OFICIAL
+conversaciones (id, escuderia_id*, clave_envuelta, creada_en)
+mensajes (id, conversacion_id, numero, emisor_id, emisor_lado, contenido_cifrado, enviado_en, leido_en, leido_por)
+pruebas_neumaticos (id, anio, numero, fecha*, hora?, circuito, pais, cronograma?, estado, creada_en, creada_por,
+                    actualizada_en, firmada_en, firmada_por)                estado: NO_OFICIAL · OFICIAL
+reglamentos (id, categoria_id, tipo, titulo, version, documento, tamanio, sha256, vigente, publicado_en,
+             publicado_por, reemplazado_en)                                 tipo: DEPORTIVO · TECNICO
 ```
 (*) únicos.
 
@@ -212,14 +262,31 @@ eventos_calendario (id, categoria_id, nombre, tipo, circuito, pais, fecha, hora?
 | POST | /api/escuderia/:escuderiaId/sanciones/:id/firmar | ESCUDERIA | Firma de la notificación («enterado») |
 | GET | /api/publico/inspecciones | — | Resultados de controles técnicos (filtros `categoria`, `escuderia`, `estadoTecnico`) |
 | POST / PUT / DELETE | /api/fia/inspecciones[/:id] | FIA | Alta / modificación / eliminación de una inspección |
-| GET | /api/publico/calendario | — | Fechas del calendario (filtros `categoria`, `mes`=AAAA-MM, `estado`) |
+| GET | /api/publico/calendario | — | Fechas del calendario (filtros `categoria`, `mes`=AAAA-MM, `estado`, `desde`, `hasta`) |
+| GET | /api/publico/calendario/descargar | — | Descarga en formato `.ics` con los mismos filtros |
 | GET / POST | /api/fia/calendario | FIA | Listado con firmante / alta de una fecha (especulativa) |
 | PUT / DELETE | /api/fia/calendario/:id | FIA | Modificación / eliminación de una fecha |
 | POST | /api/fia/calendario/:id/oficializar | FIA | Firma de fecha oficial |
+| GET | /api/fia/mensajes | FIA | Bandeja: escuderías, no leídos y último mensaje |
+| GET / POST | /api/fia/mensajes/:escuderiaId | FIA | Historial descifrado / envío |
+| POST | /api/fia/mensajes/:escuderiaId/leer | FIA | Marca como leídos los mensajes recibidos |
+| GET | /api/fia/mensajes/no-leidos | FIA | Contador de avisos (no renueva la sesión) |
+| GET / POST | /api/escuderia/:escuderiaId/mensajes | ESCUDERIA | Historial de la escudería seleccionada / envío |
+| POST | /api/escuderia/:escuderiaId/mensajes/leer | ESCUDERIA | Marca como leídos los mensajes recibidos |
+| GET | /api/escuderia/mensajes/no-leidos | ESCUDERIA | Contador de avisos de todas sus escuderías (no renueva la sesión) |
+| GET | /api/publico/neumaticos | — | Fechas de prueba (filtro `anio`) |
+| GET / POST | /api/fia/neumaticos | FIA | Listado con firmante / alta de una fecha (no oficial) |
+| PUT / DELETE | /api/fia/neumaticos/:id | FIA | Modificación / eliminación |
+| POST | /api/fia/neumaticos/:id/firmar | FIA | Firma de la fecha |
+| GET | /api/publico/reglamentos | — | Reglamentos vigentes (filtro `categoria`) |
+| GET | /api/publico/reglamentos/:categoria/:tipo/documento | — | PDF de la versión vigente |
+| GET | /api/fia/reglamentos | FIA | Todas las versiones |
+| POST | /api/fia/reglamentos?categoria&tipo&titulo | FIA | Publica una versión (cuerpo: PDF) y reemplaza la vigente |
+| GET | /api/fia/reglamentos/:id/documento | FIA | PDF de cualquier versión |
 
 Los errores tienen siempre el formato `{ "error": "CODIGO", "mensaje": "texto para el usuario", "detalles": { campo: mensaje } }`.
 
 ## 5. Pruebas automáticas
-`npm test` ejecuta 128 pruebas de integración (`backend/tests`) que levantan la API sobre una base en memoria
+`npm test` ejecuta 193 pruebas de integración (`backend/tests`) que levantan la API sobre una base en memoria
 y verifican cada criterio de aceptación (ver `criterios-de-aceptacion.md`). Usan un reloj simulado para probar
 la expiración por inactividad, la duración máxima de la sesión, el fin del bloqueo y el vencimiento de los enlaces.

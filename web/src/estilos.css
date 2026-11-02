@@ -982,3 +982,231 @@ textarea {
     margin-bottom: 0.5rem;
   }
 }
+
+.navegacion__enlace {
+  position: relative;
+}
+.contador-mensajes {
+  display: inline-block;
+  min-width: 20px;
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--rojo);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 20px;
+  text-align: center;
+}
+
+.grilla-mes {
+  margin-bottom: 14px;
+}
+.grilla-mes__semana,
+.grilla-mes__dias {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+}
+.grilla-mes__semana {
+  margin-bottom: 6px;
+  color: var(--texto-suave);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+}
+.grilla-mes__dia {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-height: 84px;
+  padding: 6px;
+  overflow: hidden;
+  border: 1px solid var(--borde);
+  border-radius: 6px;
+  background: var(--superficie);
+  color: var(--texto);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.grilla-mes__dia:hover:not(:disabled) {
+  border-color: var(--acento);
+}
+.grilla-mes__dia:disabled {
+  background: var(--fondo);
+  color: var(--texto-suave);
+  cursor: default;
+}
+.grilla-mes__dia--hoy .grilla-mes__numero {
+  color: var(--acento);
+  font-weight: 700;
+}
+.grilla-mes__dia--elegido {
+  border-color: var(--acento);
+  box-shadow: inset 0 0 0 1px var(--acento);
+}
+.grilla-mes__numero {
+  font-size: 13px;
+}
+.grilla-mes__evento {
+  padding: 1px 4px;
+  overflow: hidden;
+  border-radius: 4px;
+  font-size: 11px;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.grilla-mes__evento--oficial {
+  background: var(--ok-fondo);
+  color: var(--ok);
+}
+.grilla-mes__evento--especulativa {
+  background: var(--aviso-fondo);
+  color: var(--aviso);
+}
+.grilla-mes__mas {
+  color: var(--texto-suave);
+  font-size: 11px;
+}
+
+.lista-pruebas,
+.lista-reglamentos {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.prueba--no_oficial {
+  border-left: 4px solid var(--aviso);
+}
+.prueba--oficial {
+  border-left: 4px solid var(--ok);
+}
+.prueba__encabezado,
+.reglamento {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.prueba__encabezado h2,
+.reglamento h2 {
+  margin: 0 0 4px;
+}
+.prueba__encabezado p {
+  margin: 0;
+}
+.prueba__cronograma {
+  white-space: pre-line;
+}
+.reglamento + .tabla {
+  margin-top: 12px;
+}
+
+.mensajeria {
+  display: grid;
+  grid-template-columns: minmax(220px, 300px) minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+.mensajeria__lista {
+  display: grid;
+  gap: 4px;
+  max-height: 560px;
+  padding: 8px;
+  overflow-y: auto;
+}
+.mensajeria__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--texto);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.mensajeria__item small {
+  display: block;
+}
+.mensajeria__item:hover,
+.mensajeria__item.activa {
+  background: var(--neutro-fondo);
+}
+.conversacion__seguridad {
+  margin: 0 0 10px;
+  color: var(--texto-suave);
+  font-size: 13px;
+}
+.conversacion__mensajes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 420px;
+  min-height: 160px;
+  margin-bottom: 12px;
+  overflow-y: auto;
+}
+.mensaje {
+  align-self: flex-start;
+  max-width: 80%;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--neutro-fondo);
+}
+.mensaje--propio {
+  align-self: flex-end;
+  background: var(--info-fondo);
+}
+.mensaje__autor {
+  color: var(--texto-suave);
+  font-size: 12px;
+}
+.mensaje__texto {
+  margin: 2px 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.mensaje__danado {
+  margin: 2px 0;
+  color: var(--error);
+}
+.conversacion__envio {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+}
+.conversacion__envio textarea {
+  flex: 1;
+}
+
+@media (min-width: 721px) {
+  .navegacion__interior {
+    flex-wrap: wrap;
+    overflow-x: visible;
+  }
+}
+
+@media (max-width: 720px) {
+  .mensajeria {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .grilla-mes__dia {
+    min-height: 52px;
+    padding: 4px;
+  }
+  .grilla-mes__evento {
+    height: 6px;
+    padding: 0;
+    color: transparent;
+  }
+}

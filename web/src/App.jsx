@@ -9,14 +9,20 @@ import PilotosPublico from './paginas/publico/Pilotos.jsx';
 import CalendarioPublico from './paginas/publico/Calendario.jsx';
 import SancionesPublicas from './paginas/publico/Sanciones.jsx';
 import InspeccionesPublicas from './paginas/publico/Inspecciones.jsx';
+import NeumaticosPublico from './paginas/publico/Neumaticos.jsx';
+import ReglamentosPublico from './paginas/publico/Reglamentos.jsx';
 import { DetalleDeEscuderia, ListaDeEscuderias, NuevaEscuderia } from './paginas/fia/Escuderias.jsx';
 import Usuarios from './paginas/fia/Usuarios.jsx';
 import { Auditoria, Correos, NominaGeneral } from './paginas/fia/Seguimiento.jsx';
 import CalendarioFia from './paginas/fia/Calendario.jsx';
 import SancionesFia from './paginas/fia/Sanciones.jsx';
 import InspeccionesFia from './paginas/fia/Inspecciones.jsx';
+import MensajesFia from './paginas/fia/Mensajes.jsx';
+import NeumaticosFia from './paginas/fia/Neumaticos.jsx';
+import ReglamentosFia from './paginas/fia/Reglamentos.jsx';
 import NominaDeEscuderia from './paginas/escuderia/Nomina.jsx';
 import SancionesDeEscuderia from './paginas/escuderia/Sanciones.jsx';
+import MensajesDeEscuderia from './paginas/escuderia/Mensajes.jsx';
 
 function Inicio() {
   const { usuario, cargando } = useSesion();
@@ -47,6 +53,8 @@ export default function App() {
         <Route path="calendario" element={<CalendarioPublico />} />
         <Route path="sanciones" element={<SancionesPublicas />} />
         <Route path="controles-tecnicos" element={<InspeccionesPublicas />} />
+        <Route path="pruebas-neumaticos" element={<NeumaticosPublico />} />
+        <Route path="reglamentos" element={<ReglamentosPublico />} />
         <Route
           path="mi-cuenta"
           element={
@@ -65,6 +73,9 @@ export default function App() {
           <Route path="calendario" element={<CalendarioFia />} />
           <Route path="sanciones" element={<SancionesFia />} />
           <Route path="controles-tecnicos" element={<InspeccionesFia />} />
+          <Route path="pruebas-neumaticos" element={<NeumaticosFia />} />
+          <Route path="reglamentos" element={<ReglamentosFia />} />
+          <Route path="mensajes" element={<MensajesFia />} />
           <Route path="auditoria" element={<Auditoria />} />
           <Route path="correos" element={<Correos />} />
         </Route>
@@ -72,6 +83,7 @@ export default function App() {
           <Route index element={<Navigate to="nomina" replace />} />
           <Route path="nomina" element={<NominaDeEscuderia />} />
           <Route path="sanciones" element={<SancionesDeEscuderia />} />
+          <Route path="mensajes" element={<MensajesDeEscuderia />} />
         </Route>
         <Route path="*" element={<NoEncontrado />} />
       </Route>

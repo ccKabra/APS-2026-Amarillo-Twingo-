@@ -42,7 +42,7 @@ export function crearServicioDeSesiones({ db, config, reloj }) {
     return { token, plataforma, expiraEn: expira.toISOString(), inactividadMinutos };
   }
 
-  function validar(token) {
+  function validar(token, { registrarUso = true } = {}) {
     if (!token) return { error: 'NO_AUTENTICADO' };
     const fila = buscar.get(hashToken(token));
     if (!fila || fila.revocada_en) return { error: 'SESION_INVALIDA' };
@@ -62,7 +62,7 @@ export function crearServicioDeSesiones({ db, config, reloj }) {
       return { error: 'CUENTA_DESHABILITADA' };
     }
 
-    registrarActividad.run(marca, fila.id);
+    if (registrarUso) registrarActividad.run(marca, fila.id);
     return {
       sesion: { id: fila.id, plataforma: fila.plataforma, expiraEn: fila.expira_en, inactividadMinutos },
       usuario: { id: fila.usuario_id, email: fila.email, nombre: fila.nombre, apellido: fila.apellido, rol: fila.rol },

@@ -36,17 +36,26 @@ export function configurarPerdidaDeSesion(funcion) {
   alPerderLaSesion = funcion;
 }
 
+export async function abrirDocumento(ruta) {
+  const respuesta = await fetch(`/api${ruta}`, { headers: { Authorization: `Bearer ${tokenGuardado.leer()}` } });
+  if (!respuesta.ok) throw new ErrorApi(respuesta.status, null);
+  const enlace = URL.createObjectURL(await respuesta.blob());
+  window.open(enlace, '_blank', 'noopener');
+  setTimeout(() => URL.revokeObjectURL(enlace), 60_000);
+}
+
 export async function api(metodo, ruta, cuerpo) {
   const token = tokenGuardado.leer();
+  const esArchivo = cuerpo instanceof Blob;
   let respuesta;
   try {
     respuesta = await fetch(`/api${ruta}`, {
       method: metodo,
       headers: {
-        ...(cuerpo !== undefined && { 'Content-Type': 'application/json' }),
+        ...(cuerpo !== undefined && { 'Content-Type': esArchivo ? 'application/pdf' : 'application/json' }),
         ...(token && { Authorization: `Bearer ${token}` }),
       },
-      body: cuerpo !== undefined ? JSON.stringify(cuerpo) : undefined,
+      body: cuerpo === undefined || esArchivo ? cuerpo : JSON.stringify(cuerpo),
     });
   } catch {
     throw new ErrorApi(0, { mensaje: 'No se pudo conectar con el servidor. ¿Está corriendo el backend?' });

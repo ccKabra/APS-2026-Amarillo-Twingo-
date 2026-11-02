@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { errores } from '../lib/errores.js';
-import { Validador, esMesIso, idDeRuta } from '../lib/validacion.js';
+import { calendarioIcs } from '../lib/ics.js';
+import { Validador, esFechaIso, esMesIso, idDeRuta } from '../lib/validacion.js';
 import { TIPOS_EVENTO } from '../db/esquema.js';
 import { filtroDe } from './publico.js';
 
@@ -41,6 +42,8 @@ export function rutasDeCalendario(ctx) {
     WHERE (? IS NULL OR c.codigo = ?)
       AND (? IS NULL OR substr(ev.fecha, 1, 7) = ?)
       AND (? IS NULL OR ev.estado = ?)
+      AND (? IS NULL OR ev.fecha >= ?)
+      AND (? IS NULL OR ev.fecha <= ?)
     ORDER BY ev.fecha, COALESCE(ev.hora, ''), c.orden, ev.id`);
   const eventoPorId = db.prepare(`${SQL_EVENTO} WHERE ev.id = ?`);
   const insertar = db.prepare(`
@@ -62,12 +65,23 @@ export function rutasDeCalendario(ctx) {
     return fila;
   }
 
+  function fechaDeFiltro(valor, campo) {
+    const fecha = typeof valor === 'string' && valor.trim() ? valor.trim() : null;
+    if (fecha && !esFechaIso(fecha)) throw errores.validacion({ [campo]: 'La fecha debe tener el formato AAAA-MM-DD.' });
+    return fecha;
+  }
+
   function filtros(query) {
     const categoria = filtroDe(query.categoria);
     const mes = typeof query.mes === 'string' && query.mes.trim() ? query.mes.trim() : null;
     if (mes && !esMesIso(mes)) throw errores.validacion({ mes: 'El mes debe tener el formato AAAA-MM.' });
     const estado = ESTADOS.includes(query.estado) ? query.estado : null;
-    return [categoria, categoria, mes, mes, estado, estado];
+    const desde = fechaDeFiltro(query.desde, 'desde');
+    const hasta = fechaDeFiltro(query.hasta, 'hasta');
+    if (desde && hasta && desde > hasta) {
+      throw errores.validacion({ hasta: 'La fecha final no puede ser anterior a la inicial.' });
+    }
+    return [categoria, categoria, mes, mes, estado, estado, desde, desde, hasta, hasta];
   }
 
   function validarEvento(datos) {
@@ -97,6 +111,16 @@ export function rutasDeCalendario(ctx) {
 
   publicas.get('/', (req, res) => {
     res.json({ eventos: listar.all(...filtros(req.query)).map((f) => aEvento(f)) });
+  });
+
+  publicas.get('/descargar', (req, res) => {
+    const contenido = calendarioIcs(listar.all(...filtros(req.query)).map((f) => aEvento(f)));
+    res
+      .set({
+        'Content-Type': 'text/calendar; charset=utf-8',
+        'Content-Disposition': 'attachment; filename="calendario-fia.ics"',
+      })
+      .send(contenido);
   });
 
   const fia = Router();

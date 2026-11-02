@@ -17,10 +17,11 @@ function numero(valor, porDefecto) {
 
 export function cargarConfig(env = process.env) {
   const puerto = numero(env.PORT, 3000);
+  const dbRuta = env.DB_PATH || path.join(raiz, 'data', 'fia.db');
   return {
     puerto,
     raiz,
-    dbRuta: env.DB_PATH || path.join(raiz, 'data', 'fia.db'),
+    dbRuta,
     urlPublica: (env.PUBLIC_URL || `http://localhost:${puerto}`).replace(/\/$/, ''),
     urlWebDesarrollo: (env.WEB_DEV_URL || 'http://localhost:5173').replace(/\/$/, ''),
     webDist: env.WEB_DIST || path.resolve(raiz, '..', 'web', 'dist'),
@@ -50,6 +51,10 @@ export function cargarConfig(env = process.env) {
         user: env.SMTP_USER,
         pass: env.SMTP_PASS,
       },
+    },
+    mensajeria: {
+      claveMaestra: env.MESSAGES_MASTER_KEY,
+      archivoClave: env.MESSAGES_KEY_FILE || path.join(path.dirname(dbRuta), 'mensajeria.key'),
     },
     silencioso: env.SILENCIOSO === 'true',
   };

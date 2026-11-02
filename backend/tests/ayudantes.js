@@ -1,5 +1,6 @@
 
 
+import { randomBytes } from 'node:crypto';
 import { cargarConfig } from '../src/config.js';
 import { abrirBaseDeDatos } from '../src/db/index.js';
 import { crearApp } from '../src/app.js';
@@ -27,6 +28,7 @@ export async function iniciarServidor({ env = {}, conDatosDemo = true } = {}) {
     PUBLIC_URL: 'http://plataforma.test',
     WEB_DIST: '/no-existe',
     SILENCIOSO: 'true',
+    MESSAGES_MASTER_KEY: randomBytes(32).toString('base64'),
     ...env,
   });
   const db = abrirBaseDeDatos(':memory:');
